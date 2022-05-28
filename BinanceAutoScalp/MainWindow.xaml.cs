@@ -37,7 +37,8 @@ namespace BinanceAutoScalp
         public bool START_BET { get; set; } = false;
         public List<string> list_sumbols_name = new List<string>();
         public Socket socket;
-        public ScatterPlot tick_plot; 
+        public ScatterPlot tick_sell_plot;
+        public ScatterPlot tick_buy_plot;
         public ScatterPlot chart_scatter;
         public MainWindow()
         {
@@ -52,7 +53,7 @@ namespace BinanceAutoScalp
         }
         private void LIST_SYMBOLS_DropDownClosed(object sender, EventArgs e)
         {
-            StartKlineAsync();
+            StartTickAsync();
         }
         private void STOP_ASYNC_Click(object sender, RoutedEventArgs e)
         {
@@ -69,17 +70,21 @@ namespace BinanceAutoScalp
                 ErrorText.Add($"STOP_ASYNC_Click {c.Message}");
             }
         }
-        List<double> list_x = new List<double>();
-        List<double> list_y = new List<double>();
+        List<double> list_sell_x = new List<double>();
+        List<double> list_sell_y = new List<double>();
+        List<double> list_buy_x = new List<double>();
+        List<double> list_buy_y = new List<double>();
         double[] chart_x = new double[2];
         double[] chart_y = new double[2];
-        public void StartKlineAsync()
+        public void StartTickAsync()
         {
             StopAsync();
-            if (list_x.Count > 0 || list_y.Count > 0)
+            if (list_sell_x.Count > 0 || list_buy_x.Count > 0)
             {
-                list_x.Clear();
-                list_y.Clear(); 
+                list_sell_x.Clear();
+                list_sell_y.Clear();
+                list_buy_x.Clear();
+                list_buy_y.Clear();
                 Array.Clear(chart_x, 0, 2);
                 Array.Clear(chart_y, 0, 2);
             }
@@ -87,29 +92,57 @@ namespace BinanceAutoScalp
             {
                 Dispatcher.Invoke(new Action(() =>
                 {
-                    decimal price = Message.Data.Price;
-                    list_x.Add(Message.Data.TradeTime.ToOADate());
-                    list_y.Add(Decimal.ToDouble(Message.Data.Price));
-                    chart_x[0] = Message.Data.TradeTime.AddMinutes(-5).ToOADate();
-                    chart_x[1] = Message.Data.TradeTime.ToOADate();
-                    chart_y[0] = (Decimal.ToDouble(price + (price / 50)));
-                    chart_y[1] = (Decimal.ToDouble(price - (price / 50)));
-                    if(list_x.Count > 180)
+                    double price = Decimal.ToDouble(Message.Data.Price);
+                    double date = Message.Data.TradeTime.ToOADate();
+                    if (Message.Data.BuyerIsMaker)
                     {
-                        list_x.RemoveAt(0);
-                        list_y.RemoveAt(0);
+                        list_sell_x.Add(date);
+                        list_sell_y.Add(price);
+                    }
+                    else
+                    {
+                        list_buy_x.Add(date);
+                        list_buy_y.Add(price);
+                    }
+                    chart_x[0] = Message.Data.TradeTime.AddMinutes(-5).ToOADate();
+                    chart_x[1] = date;
+                    chart_y[0] = (price + (price / 50));
+                    chart_y[1] = (price - (price / 50));
+                    if(list_sell_x[0] < chart_x[0])
+                    {
+                        list_sell_x.RemoveAt(0);
+                        list_sell_y.RemoveAt(0);
+                    }
+                    if (list_buy_x[0] < chart_x[0])
+                    {
+                        list_buy_x.RemoveAt(0);
+                        list_buy_y.RemoveAt(0);
                     }
                     ChartLoading();
                 }));
             });
         }
 
+        //public void StartVolumeAsync()
+        //{
+        //    socket.socketClient.UsdFuturesStreams.SubscribeToTickerUpdatesAsync(LIST_SYMBOLS.Text, Message =>
+        //    {
+        //        Dispatcher.Invoke(new Action(() =>
+        //        {
+        //            Message.Data.
+        //        }));
+        //    });
+        //}
+
         private void ChartLoading()
         {
-            plt.Plot.Remove(tick_plot);
+            plt.Plot.Remove(tick_sell_plot);
+            plt.Plot.Remove(tick_buy_plot);
             plt.Plot.Remove(chart_scatter);
-            tick_plot = plt.Plot.AddScatter(list_x.ToArray(), list_y.ToArray(), color: Color.Green, lineWidth: 0, markerSize: 5);
-            tick_plot.YAxisIndex = 1;
+            tick_sell_plot = plt.Plot.AddScatter(list_sell_x.ToArray(), list_sell_y.ToArray(), color: Color.Red, lineWidth: 0, markerSize: 5);
+            tick_sell_plot.YAxisIndex = 1;
+            tick_buy_plot = plt.Plot.AddScatter(list_buy_x.ToArray(), list_buy_y.ToArray(), color: Color.Green, lineWidth: 0, markerSize: 5);
+            tick_buy_plot.YAxisIndex = 1;
             chart_scatter = plt.Plot.AddScatterLines(chart_x, chart_y, Color.Transparent, lineStyle: LineStyle.Dash, label: chart_y[0] + " - price");
             chart_scatter.YAxisIndex = 1;
             plt.Refresh();
