@@ -1,4 +1,5 @@
-﻿using Binance.Net.Objects.Models.Spot;
+﻿using Binance.Net.Objects.Models;
+using Binance.Net.Objects.Models.Spot;
 using BinanceAutoScalp.Binance;
 using BinanceAutoScalp.ConnectDB;
 using BinanceAutoScalp.Errors;
@@ -12,6 +13,7 @@ using System.IO;
 using System.Linq;
 using System.Media;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -29,6 +31,7 @@ namespace BinanceAutoScalp
     /// </summary>
     public partial class MainWindow : Window
     {
+        public int PERCENT { get; set; } = 1;
         public bool SOUND { get; set; } = false;
         public string API_KEY { get; set; } = "";
         public string SECRET_KEY { get; set; } = "";
@@ -40,6 +43,10 @@ namespace BinanceAutoScalp
         public ScatterPlot tick_sell_plot;
         public ScatterPlot tick_buy_plot;
         public ScatterPlot chart_scatter;
+        public ScatterPlot ask_scatter;
+        public ScatterPlot bid_scatter;
+        public ScatterPlot ask_percent_scatter;
+        public ScatterPlot bid_percent_scatter;
         public MainWindow()
         {
             InitializeComponent();
@@ -51,10 +58,30 @@ namespace BinanceAutoScalp
             LOGIN_GRID.Visibility = Visibility.Visible;
             this.DataContext = this;
         }
+        public Thread ping;
+        public Thread thread_bid_ask;
+        public Thread tick;
         private void LIST_SYMBOLS_DropDownClosed(object sender, EventArgs e)
         {
-            StartTickAsync();
+            try
+            {
+                string symbol = LIST_SYMBOLS.Text;
+                //StartTickAsync();
+                Thread tick = new Thread(() => { StartTickAsync(socket, symbol); });
+                tick.Start();
+                ping = new Thread(()=> { Ping(socket); });
+                ping.Start();
+                thread_bid_ask = new Thread(() => { BidAsk(socket, symbol); });
+                thread_bid_ask.Start();
+
+                ChartLoadingLines();
+            }
+            catch (Exception c)
+            {
+                ErrorText.Add(c.Message);
+            }
         }
+
         private void STOP_ASYNC_Click(object sender, RoutedEventArgs e)
         {
             StopAsync();
@@ -64,6 +91,9 @@ namespace BinanceAutoScalp
             try
             {
                 socket.socketClient.UnsubscribeAllAsync();
+                tick.Abort();
+                ping.Abort();
+                thread_bid_ask.Abort();
             }
             catch (Exception c)
             {
@@ -76,76 +106,232 @@ namespace BinanceAutoScalp
         List<double> list_buy_y = new List<double>();
         double[] chart_x = new double[2];
         double[] chart_y = new double[2];
-        public void StartTickAsync()
+        double[] ask_y = new double[2];
+        double[] bid_y = new double[2];
+        double[] ask_percent_y = new double[2];
+        double[] bid_percent_y = new double[2];
+        async void StartTickAsync(Socket socket_thread, string symbol)
         {
-            StopAsync();
-            if (list_sell_x.Count > 0 || list_buy_x.Count > 0)
+            try
             {
-                list_sell_x.Clear();
-                list_sell_y.Clear();
-                list_buy_x.Clear();
-                list_buy_y.Clear();
-                Array.Clear(chart_x, 0, 2);
-                Array.Clear(chart_y, 0, 2);
+                await Task.Run(()=>{
+                    socket_thread.socketClient.UsdFuturesStreams.SubscribeToAggregatedTradeUpdatesAsync(symbol, Message =>
+                    {
+                        Dispatcher.Invoke(new Action(() =>
+                        {
+                            double price = Decimal.ToDouble(Message.Data.Price);
+                            double date = Message.Data.TradeTime.ToOADate();
+                            if (Message.Data.BuyerIsMaker)
+                            {
+                                list_sell_x.Add(date);
+                                list_sell_y.Add(price);
+                            }
+                            else
+                            {
+                                list_buy_x.Add(date);
+                                list_buy_y.Add(price);
+                            }
+                            chart_x[0] = Message.Data.TradeTime.AddMinutes(-1).ToOADate();
+                            chart_x[1] = date;
+                            chart_y[0] = (price + (price / 50));
+                            chart_y[1] = (price - (price / 50));
+                            if (list_sell_x[0] < chart_x[0])
+                            {
+                                list_sell_x.RemoveAt(0);
+                                list_sell_y.RemoveAt(0);
+                            }
+                            if (list_buy_x[0] < chart_x[0])
+                            {
+                                list_buy_x.RemoveAt(0);
+                                list_buy_y.RemoveAt(0);
+                            }
+                            ask_percent_y[0] = price + (price / 100 * PERCENT);
+                            ask_percent_y[1] = ask_percent_y[0];
+                            bid_percent_y[0] = price - (price / 100 * PERCENT);
+                            bid_percent_y[1] = bid_percent_y[0];
+                            ChartLoading();
+                            plt.Plot.AxisAuto();
+                            plt.Refresh();
+                        }));
+                    });
+                });
             }
-            socket.socketClient.UsdFuturesStreams.SubscribeToAggregatedTradeUpdatesAsync(LIST_SYMBOLS.Text, Message =>
+            catch (Exception c)
+            {
+                ErrorText.Add($"StartTickAsync {c.Message}");
+            }
+            
+
+           // StopAsync();
+           //// StartVolumeAsync();
+           // if (list_sell_x.Count > 0 || list_buy_x.Count > 0)
+           // {
+           //     list_sell_x.Clear();
+           //     list_sell_y.Clear();
+           //     list_buy_x.Clear();
+           //     list_buy_y.Clear();
+           //     Array.Clear(chart_x, 0, 2);
+           //     Array.Clear(chart_y, 0, 2);
+           //     Array.Clear(ask_y, 0, 2);
+           //     Array.Clear(bid_y, 0, 2);
+           // }
+            
+        }
+        private void BidAskAsync()
+        {
+            socket.socketClient.UsdFuturesStreams.SubscribeToOrderBookUpdatesAsync(LIST_SYMBOLS.Text, 1000, Message =>
             {
                 Dispatcher.Invoke(new Action(() =>
                 {
-                    double price = Decimal.ToDouble(Message.Data.Price);
-                    double date = Message.Data.TradeTime.ToOADate();
-                    if (Message.Data.BuyerIsMaker)
-                    {
-                        list_sell_x.Add(date);
-                        list_sell_y.Add(price);
-                    }
-                    else
-                    {
-                        list_buy_x.Add(date);
-                        list_buy_y.Add(price);
-                    }
-                    chart_x[0] = Message.Data.TradeTime.AddMinutes(-5).ToOADate();
-                    chart_x[1] = date;
-                    chart_y[0] = (price + (price / 50));
-                    chart_y[1] = (price - (price / 50));
-                    if(list_sell_x[0] < chart_x[0])
-                    {
-                        list_sell_x.RemoveAt(0);
-                        list_sell_y.RemoveAt(0);
-                    }
-                    if (list_buy_x[0] < chart_x[0])
-                    {
-                        list_buy_x.RemoveAt(0);
-                        list_buy_y.RemoveAt(0);
-                    }
-                    ChartLoading();
+                    
                 }));
             });
         }
+        private void Ping(Socket socket_thread)
+        {
+            try
+            {
+                for (; ; )
+                {
+                    var result = socket_thread.futures.ExchangeData.PingAsync();
+                    Dispatcher.Invoke(new Action(() =>
+                    {
+                        PING.Text = result.Result.Data.ToString();
+                    }));
+                    Thread.Sleep(1000);
+                }
 
+            }
+            catch (Exception c)
+            {
+                ErrorText.Add($"Ping {c.Message}");
+            }
+        }
+        private void BidAsk(Socket socket_thread, string symbol)
+        {
+            try
+            {
+                for (; ; )
+                {
+                    double ask = 0;
+                    double bid = 0;
+                    Dispatcher.Invoke(new Action(() =>
+                    {
+                        ask = ask_percent_y[0];
+                        bid = bid_percent_y[0];
+                    }));
+
+                    Thread thread_loading = new Thread(() => { BidAskLoading(socket_thread, symbol, ask, bid); });
+                    thread_loading.Start();
+                    Thread.Sleep(1000);
+                }
+            }
+            catch (Exception c)
+            {
+                ErrorText.Add($"BidAsk {c.Message}");
+            }
+        }
+        private void BidAskLoading(Socket socket_thread, string symbol, double ask, double bid)
+        {
+            try
+            {
+                var result = socket_thread.futures.ExchangeData.GetOrderBookAsync(symbol);
+                List<BinanceOrderBookEntry> list_ask = result.Result.Data.Asks.ToList();
+                decimal sum_ask = 0m;
+                decimal price_ask = 0m;
+                foreach (var it in list_ask)
+                {
+                    if (Decimal.ToDouble(it.Price) < ask)
+                    {
+                        sum_ask += it.Quantity;
+                        price_ask = it.Price;
+                    }
+                }
+
+                List<BinanceOrderBookEntry> list_bid = result.Result.Data.Bids.ToList();
+                decimal sum_bid = 0m;
+
+                decimal price_bid = 0m;
+                foreach (var it in list_bid)
+                {
+                    if (Decimal.ToDouble(it.Price) > bid)
+                    {
+                        sum_bid += it.Quantity;
+                        price_bid = it.Price;
+                    }
+                }
+
+                Dispatcher.Invoke(new Action(() =>
+                {
+                    if (price_ask != 0m)
+                    {
+                        ask_y[0] = Decimal.ToDouble(price_ask);
+                        ask_y[1] = ask_y[0];
+                    }
+                    if (sum_ask != 0m) ASK.Text = sum_ask.ToString();
+
+                    if (price_bid != 0m)
+                    {
+                        bid_y[0] = Decimal.ToDouble(price_bid);
+                        bid_y[1] = bid_y[0];
+                    }
+                    if (sum_bid != 0m) BID.Text = sum_bid.ToString();
+                }));
+            }
+            catch (Exception c)
+            {
+                ErrorText.Add($"BidAskLoading {c.Message}");
+            }
+        }
         //public void StartVolumeAsync()
         //{
-        //    socket.socketClient.UsdFuturesStreams.SubscribeToTickerUpdatesAsync(LIST_SYMBOLS.Text, Message =>
+        //    try
         //    {
-        //        Dispatcher.Invoke(new Action(() =>
+        //        socket.socketClient.UsdFuturesStreams.SubscribeToOrderBookUpdatesAsync(symbol: LIST_SYMBOLS.Text, updateInterval: 1000, onMessage =>
         //        {
-        //            Message.Data.
-        //        }));
-        //    });
+        //            Dispatcher.Invoke(new Action(() =>
+        //            {
+        //                //List<BinanceOrderBookEntry> value = Message.Data.Bids.ToList();
+        //                //string json = JsonConvert.SerializeObject(value);
+        //                ErrorText.Add(onMessage.Data.Bids.ToList()[0].Price.ToString());
+        //                ASK.Text = onMessage.Data.Bids.ToList()[0].Price.ToString();
+        //            }));
+        //        });
+        //    }
+        //    catch(Exception c)
+        //    {
+        //        ErrorText.Add(c.Message);
+        //    }
         //}
+
+        private void ChartLoadingLines()
+        {
+
+            plt.Plot.Remove(chart_scatter);
+            //plt.Plot.Remove(ask_scatter);
+            //plt.Plot.Remove(bid_scatter);
+            plt.Plot.Remove(ask_percent_scatter);
+            plt.Plot.Remove(bid_percent_scatter);
+            chart_scatter = plt.Plot.AddScatterLines(chart_x, chart_y, Color.Transparent, lineStyle: LineStyle.Dash);
+            chart_scatter.YAxisIndex = 1;
+            //ask_scatter = plt.Plot.AddScatterLines(chart_x, ask_y, Color.Red, lineStyle: LineStyle.Dash);
+            //ask_scatter.YAxisIndex = 1;
+            //bid_scatter = plt.Plot.AddScatterLines(chart_x, bid_y, Color.Green, lineStyle: LineStyle.Dash);
+            //bid_scatter.YAxisIndex = 1;
+            ask_percent_scatter = plt.Plot.AddScatterLines(chart_x, ask_percent_y, Color.LightPink, lineStyle: LineStyle.Dash);
+            ask_percent_scatter.YAxisIndex = 1;
+            bid_percent_scatter = plt.Plot.AddScatterLines(chart_x, bid_percent_y, Color.LightGreen, lineStyle: LineStyle.Dash);
+            bid_percent_scatter.YAxisIndex = 1;
+        }
 
         private void ChartLoading()
         {
             plt.Plot.Remove(tick_sell_plot);
             plt.Plot.Remove(tick_buy_plot);
-            plt.Plot.Remove(chart_scatter);
-            tick_sell_plot = plt.Plot.AddScatter(list_sell_x.ToArray(), list_sell_y.ToArray(), color: Color.Red, lineWidth: 0, markerSize: 5);
+            tick_sell_plot = plt.Plot.AddScatter(list_sell_x.ToArray(), list_sell_y.ToArray(), color: Color.Red, lineWidth: 0, markerSize: 3);
             tick_sell_plot.YAxisIndex = 1;
-            tick_buy_plot = plt.Plot.AddScatter(list_buy_x.ToArray(), list_buy_y.ToArray(), color: Color.Green, lineWidth: 0, markerSize: 5);
+            tick_buy_plot = plt.Plot.AddScatter(list_buy_x.ToArray(), list_buy_y.ToArray(), color: Color.Green, lineWidth: 0, markerSize: 3);
             tick_buy_plot.YAxisIndex = 1;
-            chart_scatter = plt.Plot.AddScatterLines(chart_x, chart_y, Color.Transparent, lineStyle: LineStyle.Dash, label: chart_y[0] + " - price");
-            chart_scatter.YAxisIndex = 1;
-            plt.Refresh();
         }
 
         #region - Event CheckBox -
@@ -164,16 +350,16 @@ namespace BinanceAutoScalp
             plt.Plot.Style(figureBackground: Color.Black, dataBackground: Color.Black);
             plt.Plot.Frameless();
             plt.Plot.XAxis.TickLabelStyle(color: Color.White);
-            plt.Plot.XAxis.TickMarkColor(ColorTranslator.FromHtml("#333333"));
-            plt.Plot.XAxis.MajorGrid(color: ColorTranslator.FromHtml("#333333"));
+            plt.Plot.XAxis.TickMarkColor(ColorTranslator.FromHtml("#000000"));
+            plt.Plot.XAxis.MajorGrid(color: ColorTranslator.FromHtml("#000000"));
 
             plt.Plot.YAxis.Ticks(false);
             plt.Plot.YAxis.Grid(false);
             plt.Plot.YAxis2.Ticks(true);
             plt.Plot.YAxis2.Grid(true);
             plt.Plot.YAxis2.TickLabelStyle(color: ColorTranslator.FromHtml("#00FF00"));
-            plt.Plot.YAxis2.TickMarkColor(ColorTranslator.FromHtml("#333333"));
-            plt.Plot.YAxis2.MajorGrid(color: ColorTranslator.FromHtml("#333333"));
+            plt.Plot.YAxis2.TickMarkColor(ColorTranslator.FromHtml("#000000"));
+            plt.Plot.YAxis2.MajorGrid(color: ColorTranslator.FromHtml("#000000"));
 
             var legend = plt.Plot.Legend();
             legend.FillColor = System.Drawing.Color.Transparent;
