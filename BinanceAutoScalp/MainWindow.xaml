@@ -209,8 +209,16 @@
                                 <ColumnDefinition/>
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
-                            <Label Grid.Column="0" Content="PERCENT:" Style="{DynamicResource styleLabel}"/>
+                            <Label Grid.Column="0" Content="Percent:" Style="{DynamicResource styleLabel}"/>
                             <TextBox Grid.Column="1" Text="{Binding Path=PERCENT, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource styleTextBox}"/>
+                        </Grid>
+                        <Grid Grid.Column="3" Grid.Row="0" Style="{DynamicResource styleGridBlack}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                            <Label Grid.Column="0" Content="Setting chart:" Style="{DynamicResource styleLabel}"/>
+                            <TextBox Grid.Column="1" Text="{Binding Path=SETTING_CHART, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource styleTextBox}"/>
                         </Grid>
                         <Grid Grid.Column="4" Grid.Row="0" Style="{DynamicResource styleGridBlack}">
                             <Button Content="Exit" Click="Exit_Click" Style="{DynamicResource styleButton}"/>
