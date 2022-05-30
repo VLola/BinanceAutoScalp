@@ -31,6 +31,9 @@ namespace BinanceAutoScalp
     /// </summary>
     public partial class MainWindow : Window
     {
+        private bool ASYNC { get; set; } = false;
+        private bool SUBSCRIPTION { get; set; } = false;
+        private int PING_VALUE { get; set; } = 5000;
         public int PERCENT { get; set; } = 1;
         public int SETTING_CHART { get; set; } = 0;
         public bool SOUND { get; set; } = false;
@@ -62,7 +65,13 @@ namespace BinanceAutoScalp
             LOGIN_GRID.Visibility = Visibility.Visible;
             this.DataContext = this;
         }
-        
+
+        private void Subscription_Click(object sender, RoutedEventArgs e)
+        {
+            if (SUBSCRIPTION) SUBSCRIPTION = false;
+            else SUBSCRIPTION = true;
+        }
+
         #region - Reload Symbols -
         private void LIST_SYMBOLS_DropDownClosed(object sender, EventArgs e)
         {
@@ -73,26 +82,22 @@ namespace BinanceAutoScalp
         {
             try
             {
-                if (list_sell_x.Count > 0 || list_buy_x.Count > 0)
-                {
-                    StopAsync();
-                    list_sell_x.Clear();
-                    list_sell_y.Clear();
-                    list_buy_x.Clear();
-                    list_buy_y.Clear();
-                    Array.Clear(chart_x, 0, 2);
-                    Array.Clear(chart_y, 0, 2);
-                    Array.Clear(ask_y, 0, 2);
-                    Array.Clear(bid_y, 0, 2);
-                }
+                if (ASYNC) StopAsync();
+                ASYNC = true;
                 string symbol = LIST_SYMBOLS.Text;
                 ChartLoadingLines();
                 Thread tick = new Thread(() => { SubscribeToAggregatedTrade(socket, symbol); });
                 tick.Start();
-                ping = new Thread(() => { Ping(socket); });
+                ping = new Thread(() => { Ping(socket, PING_VALUE); });
                 ping.Start();
-                thread_bid_ask = new Thread(() => { SubscribeOrderBook(socket, symbol); });
-                thread_bid_ask.Start();
+                if (SUBSCRIPTION) {
+                    thread_bid_ask = new Thread(() => { SubscribeOrderBook(socket, symbol); });
+                    thread_bid_ask.Start();
+                }
+                else{
+                    thread_bid_ask = new Thread(() => { BidAskLoading(socket, symbol); });
+                    thread_bid_ask.Start();
+                }
             }
             catch (Exception c)
             {
@@ -108,17 +113,21 @@ namespace BinanceAutoScalp
         }
         private void StopAsync()
         {
-            try
-            {
-                socket.socketClient.UnsubscribeAllAsync();
-                tick.Abort();
-                ping.Abort();
-                thread_bid_ask.Abort();
-            }
-            catch (Exception c)
-            {
-                ErrorText.Add($"STOP_ASYNC_Click {c.Message}");
-            }
+            ASYNC = false;
+            socket.socketClient.UnsubscribeAllAsync();
+            ping.Abort();
+            ping.Join();
+            thread_bid_ask.Abort();
+            thread_bid_ask.Join();
+            PING.Text = "";
+            BID.Text = "";
+            ASK.Text = "";
+            Array.Clear(chart_x, 0, 2);
+            Array.Clear(chart_y, 0, 2);
+            Array.Clear(ask_y, 0, 2);
+            Array.Clear(bid_y, 0, 2);
+            plt.Plot.Clear();
+            plt.Plot.Render();
         }
         #endregion
 
@@ -127,24 +136,29 @@ namespace BinanceAutoScalp
         {
             try
             {
+                List<double> list_sell_x = new List<double>();
+                List<double> list_sell_y = new List<double>();
+                List<double> list_buy_x = new List<double>();
+                List<double> list_buy_y = new List<double>();
                 int count = 0;
                 await socket_thread.socketClient.UsdFuturesStreams.SubscribeToAggregatedTradeUpdatesAsync(symbol, Message =>
                 {
+                    double price = Decimal.ToDouble(Message.Data.Price);
+                    double date = Message.Data.TradeTime.ToOADate();
+                    if (Message.Data.BuyerIsMaker)
+                    {
+                        list_sell_x.Add(date);
+                        list_sell_y.Add(price);
+                    }
+                    else
+                    {
+                        list_buy_x.Add(date);
+                        list_buy_y.Add(price);
+                    }
                     Dispatcher.Invoke(new Action(() =>
                     {
-                        double price = Decimal.ToDouble(Message.Data.Price);
-                        double date = Message.Data.TradeTime.ToOADate();
-                        if (Message.Data.BuyerIsMaker)
-                        {
-                            list_sell_x.Add(date);
-                            list_sell_y.Add(price);
-                        }
-                        else
-                        {
-                            list_buy_x.Add(date);
-                            list_buy_y.Add(price);
-                        }
-                        chart_x[0] = Message.Data.TradeTime.AddMinutes(-1).ToOADate();
+                        
+                        chart_x[0] = Message.Data.TradeTime.AddSeconds(-30).ToOADate();
                         chart_x[1] = date;
                         chart_y[0] = (price + (price / 50));
                         chart_y[1] = (price - (price / 50));
@@ -167,7 +181,7 @@ namespace BinanceAutoScalp
                         count++;
                         if (count > SETTING_CHART)
                         {
-                            ChartLoading();
+                            ChartLoading(list_sell_x.ToArray(), list_sell_y.ToArray(), list_buy_x.ToArray(), list_buy_y.ToArray());
                             plt.Plot.AxisAuto();
                             plt.Render();
                             count = 0;
@@ -238,119 +252,93 @@ namespace BinanceAutoScalp
         #region - Order Book Async -
         private void BidAskLoading(Socket socket_thread, string symbol)
         {
-            try
+            for (; ; )
             {
-                for (; ; )
+                double ask = 0;
+                double bid = 0;
+                Dispatcher.Invoke(new Action(() =>
                 {
-                    double ask = 0;
-                    double bid = 0;
-                    Dispatcher.Invoke(new Action(() =>
-                    {
-                        ask = ask_percent_y[0];
-                        bid = bid_percent_y[0];
-                    }));
+                    ask = ask_percent_y[0];
+                    bid = bid_percent_y[0];
+                }));
 
-                    Thread thread_loading = new Thread(() => { GetOrderBook(socket_thread, symbol, ask, bid); });
-                    thread_loading.Start();
-                    Thread.Sleep(1000);
-                }
-            }
-            catch (Exception c)
-            {
-                ErrorText.Add($"BidAsk {c.Message}");
+                Thread thread_loading = new Thread(() => { GetOrderBook(socket_thread, symbol, ask, bid); });
+                thread_loading.Start();
+                Thread.Sleep(1000);
             }
         }
         private void GetOrderBook(Socket socket_thread, string symbol, double ask, double bid)
         {
-            try
+            var result = socket_thread.futures.ExchangeData.GetOrderBookAsync(symbol);
+            List<BinanceOrderBookEntry> list_ask = result.Result.Data.Asks.ToList();
+            decimal sum_ask = 0m;
+            decimal price_ask = 0m;
+            foreach (var it in list_ask)
             {
-                var result = socket_thread.futures.ExchangeData.GetOrderBookAsync(symbol);
-                List<BinanceOrderBookEntry> list_ask = result.Result.Data.Asks.ToList();
-                decimal sum_ask = 0m;
-                decimal price_ask = 0m;
-                foreach (var it in list_ask)
+                if (Decimal.ToDouble(it.Price) < ask)
                 {
-                    if (Decimal.ToDouble(it.Price) < ask)
-                    {
-                        sum_ask += it.Quantity;
-                    }
-                    else
-                    {
-                        price_ask = it.Price;
-                        break;
-                    }
+                    sum_ask += it.Quantity;
                 }
-
-                List<BinanceOrderBookEntry> list_bid = result.Result.Data.Bids.ToList();
-                decimal sum_bid = 0m;
-
-                decimal price_bid = 0m;
-                foreach (var it in list_bid)
+                else
                 {
-                    if (Decimal.ToDouble(it.Price) > bid)
-                    {
-                        sum_bid += it.Quantity;
-                    }
-                    else
-                    {
-                        price_bid = it.Price;
-                        break;
-                    }
+                    price_ask = it.Price;
+                    break;
                 }
-
-                Dispatcher.Invoke(new Action(() =>
-                {
-                    if (price_ask != 0m)
-                    {
-                        ask_y[0] = Decimal.ToDouble(price_ask);
-                        ask_y[1] = ask_y[0];
-                    }
-                    if (sum_ask != 0m) ASK.Text = sum_ask.ToString();
-
-                    if (price_bid != 0m)
-                    {
-                        bid_y[0] = Decimal.ToDouble(price_bid);
-                        bid_y[1] = bid_y[0];
-                    }
-                    if (sum_bid != 0m) BID.Text = sum_bid.ToString();
-                }));
             }
-            catch (Exception c)
+
+            List<BinanceOrderBookEntry> list_bid = result.Result.Data.Bids.ToList();
+            decimal sum_bid = 0m;
+
+            decimal price_bid = 0m;
+            foreach (var it in list_bid)
             {
-                ErrorText.Add($"BidAskLoading {c.Message}");
+                if (Decimal.ToDouble(it.Price) > bid)
+                {
+                    sum_bid += it.Quantity;
+                }
+                else
+                {
+                    price_bid = it.Price;
+                    break;
+                }
             }
+
+            Dispatcher.Invoke(new Action(() =>
+            {
+                if (price_ask != 0m)
+                {
+                    ask_y[0] = Decimal.ToDouble(price_ask);
+                    ask_y[1] = ask_y[0];
+                }
+                if (sum_ask != 0m) ASK.Text = Math.Round(sum_ask * price_ask, 0).ToString();
+
+                if (price_bid != 0m)
+                {
+                    bid_y[0] = Decimal.ToDouble(price_bid);
+                    bid_y[1] = bid_y[0];
+                }
+                if (sum_bid != 0m) BID.Text = Math.Round(sum_bid * price_bid, 0).ToString();
+            }));
         }
         #endregion
 
         #region - Ping Async -
-        async private void Ping(Socket socket_thread)
+        private void Ping(Socket socket_thread, int ping_value)
         {
-            try
+            for (; ; )
             {
-                await Task.Run(() => {
-                    for (; ; )
-                    {
-                        var result = socket_thread.futures.ExchangeData.PingAsync();
-                        Dispatcher.Invoke(new Action(() =>
-                        {
-                            PING.Text = result.Result.Data.ToString();
-                        }));
-                        Thread.Sleep(1000);
-                    }
-                });
-            }
-            catch (Exception c)
-            {
-                ErrorText.Add($"Ping {c.Message}");
+                var result = socket_thread.futures.ExchangeData.PingAsync();
+                Dispatcher.Invoke(new Action(() =>
+                {
+                    PING.Text = result.Result.Data.ToString();
+                }));
+                Thread.Sleep(ping_value);
             }
         }
         #endregion
 
         #region - Loading Chart -
-        List<double> list_sell_x = new List<double>();
-        List<double> list_sell_y = new List<double>();
-        List<double> list_buy_x = new List<double>();
-        List<double> list_buy_y = new List<double>();
+        
         double[] chart_x = new double[2];
         double[] chart_y = new double[2];
         double[] ask_y = new double[2];
@@ -377,14 +365,13 @@ namespace BinanceAutoScalp
             bid_percent_scatter = plt.Plot.AddScatterLines(chart_x, bid_percent_y, Color.LightGreen, lineStyle: LineStyle.Dash);
             bid_percent_scatter.YAxisIndex = 1;
         }
-
-        private void ChartLoading()
+        private void ChartLoading(double[] list_sell_x, double[] list_sell_y, double[] list_buy_x, double[] list_buy_y)
         {
             plt.Plot.Remove(tick_sell_plot);
             plt.Plot.Remove(tick_buy_plot);
-            tick_sell_plot = plt.Plot.AddScatter(list_sell_x.ToArray(), list_sell_y.ToArray(), color: Color.Red, lineWidth: 0, markerSize: 3);
+            tick_sell_plot = plt.Plot.AddScatter(list_sell_x, list_sell_y, color: Color.Red, lineWidth: 0, markerSize: 3);
             tick_sell_plot.YAxisIndex = 1;
-            tick_buy_plot = plt.Plot.AddScatter(list_buy_x.ToArray(), list_buy_y.ToArray(), color: Color.Green, lineWidth: 0, markerSize: 3);
+            tick_buy_plot = plt.Plot.AddScatter(list_buy_x, list_buy_y, color: Color.Green, lineWidth: 0, markerSize: 3);
             tick_buy_plot.YAxisIndex = 1;
         }
         #endregion
