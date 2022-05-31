@@ -1,5 +1,6 @@
 ﻿using Binance.Net.Objects.Models;
 using Binance.Net.Objects.Models.Spot;
+using Binance.Net.Objects.Models.Spot.Socket;
 using BinanceAutoScalp.Binance;
 using BinanceAutoScalp.ConnectDB;
 using BinanceAutoScalp.Errors;
@@ -127,7 +128,7 @@ namespace BinanceAutoScalp
             Array.Clear(ask_y, 0, 2);
             Array.Clear(bid_y, 0, 2);
             plt.Plot.Clear();
-            plt.Plot.Render();
+            plt.Render();
         }
         #endregion
 
@@ -143,50 +144,8 @@ namespace BinanceAutoScalp
                 int count = 0;
                 await socket_thread.socketClient.UsdFuturesStreams.SubscribeToAggregatedTradeUpdatesAsync(symbol, Message =>
                 {
-                    double price = Decimal.ToDouble(Message.Data.Price);
-                    double date = Message.Data.TradeTime.ToOADate();
-                    if (Message.Data.BuyerIsMaker)
-                    {
-                        list_sell_x.Add(date);
-                        list_sell_y.Add(price);
-                    }
-                    else
-                    {
-                        list_buy_x.Add(date);
-                        list_buy_y.Add(price);
-                    }
-                    Dispatcher.Invoke(new Action(() =>
-                    {
-                        
-                        chart_x[0] = Message.Data.TradeTime.AddSeconds(-30).ToOADate();
-                        chart_x[1] = date;
-                        chart_y[0] = (price + (price / 50));
-                        chart_y[1] = (price - (price / 50));
-                        if (list_sell_x[0] < chart_x[0])
-                        {
-                            list_sell_x.RemoveAt(0);
-                            list_sell_y.RemoveAt(0);
-                        }
-                        if (list_buy_x[0] < chart_x[0])
-                        {
-                            list_buy_x.RemoveAt(0);
-                            list_buy_y.RemoveAt(0);
-                        }
-                        ask_percent_y[0] = price + (price / 100 * PERCENT);
-                        ask_percent_y[1] = ask_percent_y[0];
-                        bid_percent_y[0] = price - (price / 100 * PERCENT);
-                        bid_percent_y[1] = bid_percent_y[0];
-                        PRICE.Text = price.ToString();
-
-                        count++;
-                        if (count > SETTING_CHART)
-                        {
-                            ChartLoading(list_sell_x.ToArray(), list_sell_y.ToArray(), list_buy_x.ToArray(), list_buy_y.ToArray());
-                            plt.Plot.AxisAuto();
-                            plt.Render();
-                            count = 0;
-                        }
-                    }));
+                    count++;
+                    new Thread(() => { ThreadSubscribeToAggregatedTrade(Message.Data, count, list_sell_x, list_sell_y, list_buy_x, list_buy_y); }).Start();
                 });
             }
             catch (Exception c)
@@ -195,6 +154,83 @@ namespace BinanceAutoScalp
             }
         }
         #endregion
+
+        private void ThreadSubscribeToAggregatedTrade(BinanceStreamAggregatedTrade Data, int count, List<double> list_sell_x, List<double> list_sell_y, List<double> list_buy_x, List<double> list_buy_y)
+        {
+            try
+            {
+                double price = Decimal.ToDouble(Data.Price);
+                double date = Data.TradeTime.ToOADate();
+                if (Data.BuyerIsMaker)
+                {
+                    list_sell_x.Add(date);
+                    list_sell_y.Add(price);
+                }
+                else
+                {
+                    list_buy_x.Add(date);
+                    list_buy_y.Add(price);
+                }
+                double last_date = Data.TradeTime.AddSeconds(-30).ToOADate();
+
+                Dispatcher.Invoke(new Action(() =>
+                {
+                    chart_x[0] = last_date;
+                    chart_x[1] = date;
+                    chart_y[0] = (price + (price / 50));
+                    chart_y[1] = (price - (price / 50));
+                }));
+
+                if (list_sell_x.Count > 0 && list_sell_x[0] < last_date)
+                {
+                    int count_sell = 0;
+                    for (int i = 0; i < list_sell_x.Count - 1; i++)
+                    {
+                        if (list_sell_x[i] <= last_date)
+                        {
+                            count_sell++;
+                        }
+                        else break;
+                    }
+                    list_sell_x.RemoveRange(0, count_sell);
+                    list_sell_y.RemoveRange(0, count_sell);
+                }
+                if (list_buy_x.Count > 0 && list_buy_x[0] < last_date)
+                {
+                    int count_buy = 0;
+                    for (int i = 0; i < list_buy_x.Count - 1; i++)
+                    {
+                        if (list_buy_x[i] <= last_date)
+                        {
+                            count_buy++;
+                        }
+                        else break;
+                    }
+                    list_buy_x.RemoveRange(0, count_buy);
+                    list_buy_y.RemoveRange(0, count_buy);
+                }
+                double[] array_sell_x = list_sell_x.ToArray();
+                double[] array_sell_y = list_sell_y.ToArray();
+                double[] array_buy_x = list_buy_x.ToArray();
+                double[] array_buy_y = list_buy_y.ToArray();
+                Dispatcher.Invoke(new Action(() =>
+                {
+                    ask_percent_y[0] = price + (price / 100 * PERCENT);
+                    ask_percent_y[1] = ask_percent_y[0];
+                    bid_percent_y[0] = price - (price / 100 * PERCENT);
+                    bid_percent_y[1] = bid_percent_y[0];
+                    PRICE.Text = price.ToString();
+                    if (count % (SETTING_CHART + 1) == 0)
+                    {
+                        ChartLoading(array_sell_x, array_sell_y, array_buy_x, array_buy_y);
+                    }
+                }));
+            }
+            catch (Exception c)
+            {
+                ErrorText.Add($"ThreadSubscribeToAggregatedTrade {c.Message}");
+            }
+        }
 
         #region - Subscribe Order Book Async -
         async public void SubscribeOrderBook(Socket socket_thread, string symbol)
@@ -365,14 +401,25 @@ namespace BinanceAutoScalp
             bid_percent_scatter = plt.Plot.AddScatterLines(chart_x, bid_percent_y, Color.LightGreen, lineStyle: LineStyle.Dash);
             bid_percent_scatter.YAxisIndex = 1;
         }
-        private void ChartLoading(double[] list_sell_x, double[] list_sell_y, double[] list_buy_x, double[] list_buy_y)
+        private void ChartLoading(double[] array_sell_x, double[] array_sell_y, double[] array_buy_x, double[] array_buy_y)
         {
-            plt.Plot.Remove(tick_sell_plot);
-            plt.Plot.Remove(tick_buy_plot);
-            tick_sell_plot = plt.Plot.AddScatter(list_sell_x, list_sell_y, color: Color.Red, lineWidth: 0, markerSize: 3);
-            tick_sell_plot.YAxisIndex = 1;
-            tick_buy_plot = plt.Plot.AddScatter(list_buy_x, list_buy_y, color: Color.Green, lineWidth: 0, markerSize: 3);
-            tick_buy_plot.YAxisIndex = 1;
+            if (array_sell_x.Length > 0)
+            {
+                plt.Plot.Remove(tick_sell_plot);
+                tick_sell_plot = plt.Plot.AddScatter(array_sell_x, array_sell_y, color: Color.Red, lineWidth: 0, markerSize: 3);
+                tick_sell_plot.YAxisIndex = 1;
+            }
+            if (array_buy_x.Length > 0)
+            {
+                plt.Plot.Remove(tick_buy_plot);
+                tick_buy_plot = plt.Plot.AddScatter(array_buy_x, array_buy_y, color: Color.Green, lineWidth: 0, markerSize: 3);
+                tick_buy_plot.YAxisIndex = 1;
+            }
+            if (array_sell_x.Length > 0 || array_buy_x.Length > 0)
+            {
+                plt.Plot.AxisAuto();
+                plt.Render();
+            }
         }
         #endregion
 
