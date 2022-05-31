@@ -32,8 +32,8 @@ namespace BinanceAutoScalp
     /// </summary>
     public partial class MainWindow : Window
     {
-        private bool ASYNC { get; set; } = false;
         private bool SUBSCRIPTION { get; set; } = false;
+        private bool SUBSCRIPTION_BID_ASK { get; set; } = false;
         private int PING_VALUE { get; set; } = 5000;
         public int PERCENT { get; set; } = 1;
         public int SETTING_CHART { get; set; } = 0;
@@ -69,8 +69,8 @@ namespace BinanceAutoScalp
 
         private void Subscription_Click(object sender, RoutedEventArgs e)
         {
-            if (SUBSCRIPTION) SUBSCRIPTION = false;
-            else SUBSCRIPTION = true;
+            if (SUBSCRIPTION_BID_ASK) SUBSCRIPTION_BID_ASK = false;
+            else SUBSCRIPTION_BID_ASK = true;
         }
 
         #region - Reload Symbols -
@@ -83,15 +83,15 @@ namespace BinanceAutoScalp
         {
             try
             {
-                if (ASYNC) StopAsync();
-                ASYNC = true;
+                if (SUBSCRIPTION) StopAsync();
+                SUBSCRIPTION = true;
                 string symbol = LIST_SYMBOLS.Text;
                 ChartLoadingLines();
                 Thread tick = new Thread(() => { SubscribeToAggregatedTrade(socket, symbol); });
                 tick.Start();
                 ping = new Thread(() => { Ping(socket, PING_VALUE); });
                 ping.Start();
-                if (SUBSCRIPTION) {
+                if (SUBSCRIPTION_BID_ASK) {
                     thread_bid_ask = new Thread(() => { SubscribeOrderBook(socket, symbol); });
                     thread_bid_ask.Start();
                 }
@@ -114,7 +114,7 @@ namespace BinanceAutoScalp
         }
         private void StopAsync()
         {
-            ASYNC = false;
+            SUBSCRIPTION = false;
             socket.socketClient.UnsubscribeAllAsync();
             ping.Abort();
             ping.Join();
@@ -153,7 +153,6 @@ namespace BinanceAutoScalp
                 ErrorText.Add($"SubscribeToAggregatedTrade {c.Message}");
             }
         }
-        #endregion
 
         private void ThreadSubscribeToAggregatedTrade(BinanceStreamAggregatedTrade Data, int count, List<double> list_sell_x, List<double> list_sell_y, List<double> list_buy_x, List<double> list_buy_y)
         {
@@ -231,6 +230,7 @@ namespace BinanceAutoScalp
                 ErrorText.Add($"ThreadSubscribeToAggregatedTrade {c.Message}");
             }
         }
+        #endregion
 
         #region - Subscribe Order Book Async -
         async public void SubscribeOrderBook(Socket socket_thread, string symbol)
