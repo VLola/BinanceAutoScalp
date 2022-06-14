@@ -4,6 +4,7 @@ using Binance.Net.Objects.Models.Spot.Socket;
 using BinanceAutoScalp.Binance;
 using BinanceAutoScalp.ConnectDB;
 using BinanceAutoScalp.Errors;
+using BinanceAutoScalp.ViewModel;
 using Newtonsoft.Json;
 using ScottPlot;
 using ScottPlot.Plottable;
@@ -32,6 +33,7 @@ namespace BinanceAutoScalp
     /// </summary>
     public partial class MainWindow : Window
     {
+        public List<SymbolControl> LIST_SYMBOLS_LIST { get; set; } = new List<SymbolControl>();
         private bool SUBSCRIPTION { get; set; } = false;
         private bool SUBSCRIPTION_BID_ASK { get; set; } = false;
         private int PING_VALUE { get; set; } = 5000;
@@ -65,6 +67,25 @@ namespace BinanceAutoScalp
             EXIT_GRID.Visibility = Visibility.Hidden;
             LOGIN_GRID.Visibility = Visibility.Visible;
             this.DataContext = this;
+        }
+
+        private void SellectAll_Click(object sender, RoutedEventArgs e)
+        {
+            CheckBox box = (CheckBox)sender;
+            if (box.IsChecked == true)
+            {
+                foreach(SymbolControl it in Symbols.Children)
+                {
+                    it.CheckSymbol.IsChecked = true;
+                }
+
+            }
+            else {
+                foreach (SymbolControl it in Symbols.Children)
+                {
+                    it.CheckSymbol.IsChecked = false;
+                }
+            }
         }
 
         private void Subscription_Click(object sender, RoutedEventArgs e)
@@ -244,21 +265,25 @@ namespace BinanceAutoScalp
                         List<BinanceOrderBookEntry> list_ask = Message.Data.Asks.ToList();
                         decimal sum_ask = 0m;
                         decimal price_ask = 0m;
-                        foreach (var it in list_ask)
-                        {
-                            sum_ask += it.Quantity;
-                            price_ask = it.Price;
-                        }
+
+                        sum_ask = list_ask.Sum(it => it.Quantity);
+                        price_ask = list_ask[list_ask.Count - 1].Price;
+                        //foreach (var it in list_ask)
+                        //{
+                        //    sum_ask += it.Quantity;
+                        //    price_ask = it.Price;
+                        //}
 
                         List<BinanceOrderBookEntry> list_bid = Message.Data.Bids.ToList();
                         decimal sum_bid = 0m;
-
                         decimal price_bid = 0m;
-                        foreach (var it in list_bid)
-                        {
-                            sum_bid += it.Quantity;
-                            price_bid = it.Price;
-                        }
+                        sum_bid = list_bid.Sum(it => it.Quantity);
+                        price_bid = list_bid[list_bid.Count - 1].Price;
+                        //foreach (var it in list_bid)
+                        //{
+                        //    sum_bid += it.Quantity;
+                        //    price_bid = it.Price;
+                        //}
 
                         if (price_ask != 0m)
                         {
@@ -274,7 +299,6 @@ namespace BinanceAutoScalp
                         }
                         if (sum_bid != 0m) BID.Text = sum_bid.ToString();
                     }));
-                    
                 }));
             }
             catch (Exception c)
@@ -326,6 +350,7 @@ namespace BinanceAutoScalp
             decimal sum_bid = 0m;
 
             decimal price_bid = 0m;
+
             foreach (var it in list_bid)
             {
                 if (Decimal.ToDouble(it.Price) > bid)
@@ -468,6 +493,15 @@ namespace BinanceAutoScalp
             list_sumbols_name.Sort();
             LIST_SYMBOLS.Items.Refresh();
             LIST_SYMBOLS.SelectedIndex = 0;
+            int i = 0;
+            foreach (var it in list_sumbols_name)
+            {
+                Symbols.RowDefinitions.Add(new RowDefinition());
+                SymbolControl control = new SymbolControl(it);
+                Grid.SetRow(control, i);
+                Symbols.Children.Add(control);
+                i++;
+            }
         }
         public List<BinancePrice> ListSymbols()
         {
