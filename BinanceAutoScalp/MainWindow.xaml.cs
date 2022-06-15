@@ -34,8 +34,10 @@ namespace BinanceAutoScalp
     /// </summary>
     public partial class MainWindow : Window
     {
+        public VariablesMain variables { get; set; } = new VariablesMain();
         public decimal MUL_START { get; set; } = 5m;
-        public decimal MUL_FINISH { get; set; } = 2m;
+        public decimal TP { get; set; } = 0.001m;
+        public decimal SL { get; set; } = 0.001m;
         public List<SymbolControl> LIST_SYMBOLS_LIST { get; set; } = new List<SymbolControl>();
         private bool SUBSCRIPTION { get; set; } = false;
         private bool SUBSCRIPTION_BID_ASK { get; set; } = false;
@@ -87,12 +89,16 @@ namespace BinanceAutoScalp
                 if (it.symbol.SymbolName == name) symbol_control = it;
             }
             int count = 0;
+            int positive_trade = 0;
+            int negative_trade = 0;
             if (symbol_control.symbol.ListAsk.Count > 0)
             {
                 List<Trade> list = symbol_control.symbol.ListAsk;
                 foreach (var it in list)
                 {
                     HistoryTradeControl control = new HistoryTradeControl(it);
+                    if (control.variables.isPlusProfit) positive_trade++;
+                    else negative_trade++;
                     Detail.RowDefinitions.Add(new RowDefinition());
                     Grid.SetRow(control, count);
                     Detail.Children.Add(control);
@@ -105,12 +111,16 @@ namespace BinanceAutoScalp
                 foreach (var it in list)
                 {
                     HistoryTradeControl control = new HistoryTradeControl(it);
+                    if (control.variables.isPlusProfit) positive_trade++;
+                    else negative_trade++;
                     Detail.RowDefinitions.Add(new RowDefinition());
                     Grid.SetRow(control, count);
                     Detail.Children.Add(control);
                     count++;
                 }
             }
+            variables.PositiveTrade = positive_trade;
+            variables.NegativeTrade = negative_trade;
         }
         private void MulStart_TextChanged(object sender, TextChangedEventArgs e)
         {
@@ -122,13 +132,23 @@ namespace BinanceAutoScalp
                 }
             }
         }
-        private void MulFinish_TextChanged(object sender, TextChangedEventArgs e)
+        private void TP_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (MUL_FINISH > 0m)
+            if (TP > 0m)
             {
                 foreach (SymbolControl it in Symbols.Children)
                 {
-                    it.symbol.MulFinish = MUL_FINISH;
+                    it.symbol.TP = TP;
+                }
+            }
+        }
+        private void SL_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (SL > 0m)
+            {
+                foreach (SymbolControl it in Symbols.Children)
+                {
+                    it.symbol.SL = SL;
                 }
             }
         }

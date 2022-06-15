@@ -78,6 +78,7 @@
             <ColumnDefinition Width="80"/>
             <ColumnDefinition Width="80"/>
             <ColumnDefinition Width="80"/>
+            <ColumnDefinition Width="80"/>
         </Grid.ColumnDefinitions>
         <Grid Grid.Column="0" Style="{DynamicResource styleGrid}">
             <Button Content="{Binding Path=symbol.SymbolName}" x:Name="DetailSymbol" Style="{DynamicResource styleButton}"/>
@@ -102,7 +103,10 @@
             <TextBox Text="{Binding Path=symbol.MulStart}" Style="{DynamicResource styleTextBox}"/>
         </Grid>
         <Grid Grid.Column="7" Style="{DynamicResource styleGrid}">
-            <TextBox Text="{Binding Path=symbol.MulFinish}" Style="{DynamicResource styleTextBox}"/>
+            <TextBox Text="{Binding Path=symbol.TP}" Style="{DynamicResource styleTextBox}"/>
+        </Grid>
+        <Grid Grid.Column="8" Style="{DynamicResource styleGrid}">
+            <TextBox Text="{Binding Path=symbol.SL}" Style="{DynamicResource styleTextBox}"/>
         </Grid>
     </Grid>
 </UserControl>

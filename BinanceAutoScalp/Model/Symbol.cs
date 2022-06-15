@@ -53,13 +53,6 @@ namespace BinanceAutoScalp.Model
                     BidStart = true;
                     price_open_bid = _PriceBid;
                 }
-                else if (_Ask > 0m && value < (_Ask * _MulFinish) && BidStart)
-                {
-                    BidStart = false;
-                    price_close_bid = _PriceBid;
-                    CountBid = _CountBid + 1;
-                    AddBid();
-                }
                 _Bid = value;
                 OnPropertyChanged("Bid");
             } 
@@ -76,13 +69,6 @@ namespace BinanceAutoScalp.Model
                     AskStart = true;
                     price_open_ask = _PriceAsk;
                 }
-                else if (_Bid > 0m && value < (_Bid * _MulFinish) && AskStart)
-                {
-                    AskStart = false;
-                    price_close_ask = _PriceAsk;
-                    CountAsk = _CountAsk + 1;
-                    AddAsk();
-                }
                 _Ask = value;
                 OnPropertyChanged("Ask");
             }
@@ -94,6 +80,13 @@ namespace BinanceAutoScalp.Model
             { 
                 _PriceBid = value;
                 OnPropertyChanged("PriceBid");
+                if (value > (price_open_bid + (price_open_bid * SL)) && BidStart || value < (price_open_bid - (price_open_bid * TP)) && BidStart)
+                {
+                    BidStart = false;
+                    price_close_bid = value;
+                    CountBid = _CountBid + 1;
+                    AddBid();
+                }
             }
         }
         private decimal _PriceAsk { get; set; }
@@ -104,6 +97,13 @@ namespace BinanceAutoScalp.Model
             {
                 _PriceAsk = value;
                 OnPropertyChanged("PriceAsk");
+                if (value > (price_open_ask + (price_open_ask * TP)) && AskStart || value < (price_open_ask - (price_open_ask * SL)) && AskStart)
+                {
+                    AskStart = false;
+                    price_close_ask = value;
+                    CountAsk = _CountAsk + 1;
+                    AddAsk();
+                }
             }
         }
         private int _CountAsk { get; set; } = 0;
@@ -144,16 +144,29 @@ namespace BinanceAutoScalp.Model
                 
             }
         }
-        private decimal _MulFinish { get; set; } = 2m;
-        public decimal MulFinish
+        private decimal _TP { get; set; } = 0.001m;
+        public decimal TP
         {
-            get { return _MulFinish; }
+            get { return _TP; }
             set
             {
-                if(value > 0m)
+                if (value > 0m)
                 {
-                    _MulFinish = value;
-                    OnPropertyChanged("MulFinish");
+                    _TP = value;
+                    OnPropertyChanged("TP");
+                }
+            }
+        }
+        private decimal _SL { get; set; } = 0.001m;
+        public decimal SL
+        {
+            get { return _SL; }
+            set
+            {
+                if (value > 0m)
+                {
+                    _SL = value;
+                    OnPropertyChanged("SL");
                 }
             }
         }

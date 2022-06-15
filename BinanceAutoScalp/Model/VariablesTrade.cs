@@ -41,12 +41,12 @@ namespace BinanceAutoScalp.Model
                 if (value == "Long")
                 {
                     isLong = true;
-                    Profit = ((_PriceClose - _PriceOpen) / _PriceOpen * 100);
+                    Profit = ((_PriceClose - _PriceOpen) / _PriceOpen);
                 }
                 else
                 {
                     isLong = false;
-                    Profit = ((_PriceOpen - _PriceClose) / _PriceClose * 100);
+                    Profit = ((_PriceOpen - _PriceClose) / _PriceClose);
                 }
             }
         }

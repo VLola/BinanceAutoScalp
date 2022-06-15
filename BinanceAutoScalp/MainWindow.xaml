@@ -262,6 +262,7 @@
                     <ColumnDefinition Width="80"/>
                     <ColumnDefinition Width="80"/>
                     <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="80"/>
                     <ColumnDefinition Width="20"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
@@ -272,6 +273,7 @@
                 </Grid.RowDefinitions>
                 <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="9">
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
                         <ColumnDefinition/>
                         <ColumnDefinition/>
                         <ColumnDefinition/>
@@ -292,8 +294,16 @@
                             <ColumnDefinition/>
                             <ColumnDefinition/>
                         </Grid.ColumnDefinitions>
-                        <Label Grid.Column="0" Content="Mul Finish:" Style="{DynamicResource styleLabel}"/>
-                        <TextBox Grid.Column="1" Text="{Binding Path=MUL_FINISH, UpdateSourceTrigger=PropertyChanged}" TextChanged="MulFinish_TextChanged" Style="{DynamicResource styleTextBox}"/>
+                        <Label Grid.Column="0" Content="TP:" Style="{DynamicResource styleLabel}"/>
+                        <TextBox Grid.Column="1" Text="{Binding Path=TP, UpdateSourceTrigger=PropertyChanged}" TextChanged="TP_TextChanged" Style="{DynamicResource styleTextBox}"/>
+                    </Grid>
+                    <Grid Grid.Column="3" Style="{DynamicResource styleGrid}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0" Content="SL:" Style="{DynamicResource styleLabel}"/>
+                        <TextBox Grid.Column="1" Text="{Binding Path=SL, UpdateSourceTrigger=PropertyChanged}" TextChanged="SL_TextChanged" Style="{DynamicResource styleTextBox}"/>
                     </Grid>
                 </Grid>
 
@@ -319,16 +329,19 @@
                     <Label Content="Mul Start" Margin="1" Style="{DynamicResource styleLabel}"/>
                 </Grid>
                 <Grid  Grid.Column="7" Grid.Row="1" Style="{DynamicResource styleGrid}">
-                    <Label Content="Mul Finish" Margin="1" Style="{DynamicResource styleLabel}"/>
+                    <Label Content="TP" Margin="1" Style="{DynamicResource styleLabel}"/>
                 </Grid>
                 <Grid  Grid.Column="8" Grid.Row="1" Style="{DynamicResource styleGrid}">
+                    <Label Content="SL" Margin="1" Style="{DynamicResource styleLabel}"/>
+                </Grid>
+                <Grid  Grid.Column="9" Grid.Row="1" Style="{DynamicResource styleGrid}">
                     <!--<Label Content="Detail" Margin="1" Style="{DynamicResource styleLabel}"/>-->
                 </Grid>
 
-                <ScrollViewer Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="9">
+                <ScrollViewer Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="10">
                     <Grid x:Name="Symbols"/>
                 </ScrollViewer>
-                <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="9">
+                <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="10">
 
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -353,7 +366,11 @@
                             <Label Content="Position" Style="{DynamicResource styleLabel}"/>
                         </Grid>
                         <Grid  Grid.Column="3" Style="{DynamicResource styleGrid}">
-                            <Label Content="Profit" Style="{DynamicResource styleLabel}"/>
+                            <DockPanel>
+                                <Label Content="Profit" Style="{DynamicResource styleLabel}"/>
+                                <TextBlock Text="{Binding Path=variables.PositiveTrade}" Style="{DynamicResource styleTextBlock}" Foreground="Green"/>
+                                <TextBlock Text="{Binding Path=variables.NegativeTrade}" Style="{DynamicResource styleTextBlock}" Foreground="Red"/>
+                            </DockPanel>
                         </Grid>
                     </Grid>
                     <ScrollViewer Grid.Row="1">
