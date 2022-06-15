@@ -5,10 +5,50 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:BinanceAutoScalp.ViewModel"
              mc:Ignorable="d" 
-             d:DesignHeight="50" d:DesignWidth="500">
+             d:DesignHeight="50" d:DesignWidth="1000">
     <UserControl.Resources>
         <Style x:Key="styleTextBlock" TargetType="TextBlock">
             <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="10 0"/>
+        </Style>
+        <Style x:Key="styleButton" TargetType="Button">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Background" Value="Black"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="2"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Path=symbol.CountAskPlus}" Value="True">
+                    <Setter Property="Background" Value="DarkGray"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Path=symbol.CountBidPlus}" Value="True">
+                    <Setter Property="Background" Value="DarkGray"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="styleTextBlockAsk" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="10 0"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Path=symbol.CountAskPlus}" Value="True">
+                    <Setter Property="Foreground" Value="Orange"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="styleTextBlockBid" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="10 0"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Path=symbol.CountBidPlus}" Value="True">
+                    <Setter Property="Foreground" Value="Orange"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="styleTextBox" TargetType="TextBox">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Background" Value="Black"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Margin" Value="10 0"/>
         </Style>
@@ -19,26 +59,50 @@
         </Style>
         <Style x:Key="styleCheckBox" TargetType="CheckBox">
             <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Margin" Value="10 0"/>
         </Style>
+        <Style x:Key="styleGrid" TargetType="Grid">
+            <Setter Property="Background" Value="Black" />
+            <Setter Property="Margin" Value="1" />
+        </Style>
     </UserControl.Resources>
-    <Grid Background="Black" Margin="1">
+    <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="120"/>
+            <ColumnDefinition Width="50"/>
             <ColumnDefinition Width="100"/>
-            <ColumnDefinition Width="150"/>
-            <ColumnDefinition Width="150"/>
+            <ColumnDefinition Width="100"/>
+            <ColumnDefinition Width="80"/>
+            <ColumnDefinition Width="80"/>
+            <ColumnDefinition Width="80"/>
+            <ColumnDefinition Width="80"/>
         </Grid.ColumnDefinitions>
-        <TextBlock Grid.Column="0" Text="{Binding Path=symbol.SymbolName}" Style="{DynamicResource styleTextBlock}"/>
-        <CheckBox Grid.Column="1" x:Name="CheckSymbol" Content="Start" IsChecked="{Binding Path=symbol.Start}" Style="{DynamicResource styleCheckBox}"/>
-        <DockPanel Grid.Column="2">
-            <Label Content="Bid" Style="{DynamicResource styleLabel}"/>
-            <TextBlock Text="{Binding Path=symbol.Bid}" Style="{DynamicResource styleTextBlock}"/>
-        </DockPanel>
-        <DockPanel Grid.Column="3">
-            <Label Content="Ask" Style="{DynamicResource styleLabel}"/>
-            <TextBlock Text="{Binding Path=symbol.Ask}" Style="{DynamicResource styleTextBlock}"/>
-        </DockPanel>
+        <Grid Grid.Column="0" Style="{DynamicResource styleGrid}">
+            <Button Content="{Binding Path=symbol.SymbolName}" x:Name="DetailSymbol" Style="{DynamicResource styleButton}"/>
+            <!--<TextBlock Text="{Binding Path=symbol.SymbolName}" Style="{DynamicResource styleTextBlock}"/>-->
+        </Grid>
+        <Grid Grid.Column="1" Style="{DynamicResource styleGrid}">
+            <CheckBox x:Name="CheckSymbol" IsChecked="{Binding Path=symbol.Start}" Style="{DynamicResource styleCheckBox}"/>
+        </Grid>
+        <Grid Grid.Column="2" Style="{DynamicResource styleGrid}">
+            <TextBlock Text="{Binding Path=symbol.Bid}" Foreground="Red" Style="{DynamicResource styleTextBlock}"/>
+        </Grid>
+        <Grid Grid.Column="3" Style="{DynamicResource styleGrid}">
+            <TextBlock Text="{Binding Path=symbol.Ask}" Foreground="Green" Style="{DynamicResource styleTextBlock}"/>
+        </Grid>
+        <Grid Grid.Column="4" Style="{DynamicResource styleGrid}">
+            <TextBlock Text="{Binding Path=symbol.CountAsk}" Style="{DynamicResource styleTextBlockAsk}"/>
+        </Grid>
+        <Grid Grid.Column="5" Style="{DynamicResource styleGrid}">
+            <TextBlock Text="{Binding Path=symbol.CountBid}" Style="{DynamicResource styleTextBlockBid}"/>
+        </Grid>
+        <Grid Grid.Column="6" Style="{DynamicResource styleGrid}">
+            <TextBox Text="{Binding Path=symbol.MulStart}" Style="{DynamicResource styleTextBox}"/>
+        </Grid>
+        <Grid Grid.Column="7" Style="{DynamicResource styleGrid}">
+            <TextBox Text="{Binding Path=symbol.MulFinish}" Style="{DynamicResource styleTextBox}"/>
+        </Grid>
     </Grid>
 </UserControl>

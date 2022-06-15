@@ -1,0 +1,58 @@
+﻿<UserControl x:Class="BinanceAutoScalp.ViewModel.HistoryTradeControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:BinanceAutoScalp.ViewModel"
+             mc:Ignorable="d" 
+             d:DesignHeight="50" d:DesignWidth="400">
+    <UserControl.Resources>
+        <Style x:Key="styleTextBlock" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="10 0"/>
+        </Style>
+        <Style x:Key="styleTextBlockPosition" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="Red"/>
+            <Setter Property="Margin" Value="10 0"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Path=variables.isLong}" Value="True">
+                    <Setter Property="Foreground" Value="Green"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="styleTextBlockProfit" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="Red"/>
+            <Setter Property="Margin" Value="10 0"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Path=variables.isPlusProfit}" Value="True">
+                    <Setter Property="Foreground" Value="Green"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="styleLabel" TargetType="Label">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="5 0"/>
+        </Style>
+        <Style x:Key="styleGrid" TargetType="Grid">
+            <Setter Property="Background" Value="Black" />
+            <Setter Property="Margin" Value="1" />
+        </Style>
+    </UserControl.Resources>
+    <Grid Style="{DynamicResource styleGrid}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="100"/>
+            <ColumnDefinition Width="100"/>
+            <ColumnDefinition Width="100"/>
+            <ColumnDefinition Width="100"/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <TextBlock Grid.Column="0" Text="{Binding Path=variables.PriceOpen}" Style="{DynamicResource styleTextBlock}"/>
+        <TextBlock Grid.Column="1" Text="{Binding Path=variables.PriceClose}" Style="{DynamicResource styleTextBlock}"/>
+        <TextBlock Grid.Column="2" Text="{Binding Path=variables.Position}" Style="{DynamicResource styleTextBlockPosition}"/>
+        <TextBlock Grid.Column="3" Text="{Binding Path=variables.Profit}" Style="{DynamicResource styleTextBlockProfit}"/>
+    </Grid>
+</UserControl>

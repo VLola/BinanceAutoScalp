@@ -4,6 +4,7 @@ using Binance.Net.Objects.Models.Spot.Socket;
 using BinanceAutoScalp.Binance;
 using BinanceAutoScalp.ConnectDB;
 using BinanceAutoScalp.Errors;
+using BinanceAutoScalp.Model;
 using BinanceAutoScalp.ViewModel;
 using Newtonsoft.Json;
 using ScottPlot;
@@ -33,6 +34,8 @@ namespace BinanceAutoScalp
     /// </summary>
     public partial class MainWindow : Window
     {
+        public decimal MUL_START { get; set; } = 5m;
+        public decimal MUL_FINISH { get; set; } = 2m;
         public List<SymbolControl> LIST_SYMBOLS_LIST { get; set; } = new List<SymbolControl>();
         private bool SUBSCRIPTION { get; set; } = false;
         private bool SUBSCRIPTION_BID_ASK { get; set; } = false;
@@ -69,6 +72,67 @@ namespace BinanceAutoScalp
             this.DataContext = this;
         }
 
+        private void DetailSymbol_Click(object sender, RoutedEventArgs e)
+        {
+            if(Detail.Children.Count > 0)
+            {
+                Detail.Children.Clear();
+                Detail.RowDefinitions.Clear();
+            }
+            Button button = (Button)sender;
+            string name = (string)button.Content;
+            SymbolControl symbol_control = new SymbolControl("");
+            foreach (SymbolControl it in Symbols.Children)
+            {
+                if (it.symbol.SymbolName == name) symbol_control = it;
+            }
+            int count = 0;
+            if (symbol_control.symbol.ListAsk.Count > 0)
+            {
+                List<Trade> list = symbol_control.symbol.ListAsk;
+                foreach (var it in list)
+                {
+                    HistoryTradeControl control = new HistoryTradeControl(it);
+                    Detail.RowDefinitions.Add(new RowDefinition());
+                    Grid.SetRow(control, count);
+                    Detail.Children.Add(control);
+                    count++;
+                }
+            }
+            if (symbol_control.symbol.ListBid.Count > 0)
+            {
+                List<Trade> list = symbol_control.symbol.ListBid;
+                foreach (var it in list)
+                {
+                    HistoryTradeControl control = new HistoryTradeControl(it);
+                    Detail.RowDefinitions.Add(new RowDefinition());
+                    Grid.SetRow(control, count);
+                    Detail.Children.Add(control);
+                    count++;
+                }
+            }
+        }
+        private void MulStart_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if(MUL_START > 0m)
+            {
+                foreach (SymbolControl it in Symbols.Children)
+                {
+                    it.symbol.MulStart = MUL_START;
+                }
+            }
+        }
+        private void MulFinish_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (MUL_FINISH > 0m)
+            {
+                foreach (SymbolControl it in Symbols.Children)
+                {
+                    it.symbol.MulFinish = MUL_FINISH;
+                }
+            }
+        }
+
         private void SellectAll_Click(object sender, RoutedEventArgs e)
         {
             CheckBox box = (CheckBox)sender;
@@ -78,7 +142,6 @@ namespace BinanceAutoScalp
                 {
                     it.CheckSymbol.IsChecked = true;
                 }
-
             }
             else {
                 foreach (SymbolControl it in Symbols.Children)
@@ -498,11 +561,14 @@ namespace BinanceAutoScalp
             {
                 Symbols.RowDefinitions.Add(new RowDefinition());
                 SymbolControl control = new SymbolControl(it);
+                control.DetailSymbol.Click += DetailSymbol_Click;
                 Grid.SetRow(control, i);
                 Symbols.Children.Add(control);
                 i++;
             }
         }
+
+
         public List<BinancePrice> ListSymbols()
         {
             try

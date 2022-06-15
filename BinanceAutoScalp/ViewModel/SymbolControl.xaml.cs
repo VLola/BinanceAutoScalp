@@ -47,21 +47,27 @@ namespace BinanceAutoScalp.ViewModel
                 }
             }
         }
-
-        private void Check_Click(object sender, RoutedEventArgs e)
-        {
-            if (!symbol.Start) StopAsync();
-            else SubscribeOrderBook();
-        }
         
-        private void StopAsync()
+        private async void StopAsync()
         {
-            socket.socketClient.UnsubscribeAllAsync();
-            //symbol.Ask = 0m;
-            //symbol.Bid = 0m;
-            //symbol.PriceAsk = 0m;
-            //symbol.PriceBid = 0m;
-
+            await Task.Run(() => {
+                Stop();
+            });
+        }
+        private void Stop()
+        {
+            var result = socket.socketClient.UnsubscribeAllAsync();
+            result.Wait(100);
+            symbol.Ask = 0m;
+            symbol.Bid = 0m;
+            symbol.PriceAsk = 0m;
+            symbol.PriceBid = 0m;
+            symbol.CountAsk = 0;
+            symbol.CountBid = 0;
+            symbol.BidStart = false;
+            symbol.AskStart = false;
+            symbol.ListAsk = new List<Trade>();
+            symbol.ListBid = new List<Trade>();
         }
         async public void SubscribeOrderBook()
         {
@@ -70,24 +76,23 @@ namespace BinanceAutoScalp.ViewModel
                 await socket.futuresSocket.SubscribeToPartialOrderBookUpdatesAsync(symbol.SymbolName, 20, 500, (Message => {
 
                     List<BinanceOrderBookEntry> list_ask = Message.Data.Asks.ToList();
-                    decimal sum_ask = 0m;
-                    decimal price_ask = 0m;
-
-                    sum_ask = list_ask.Sum(it => it.Quantity);
-                    price_ask = list_ask[list_ask.Count - 1].Price;
+                    decimal price_ask = list_ask[0].Price;
+                    decimal sum_ask = list_ask.Sum(it => it.Quantity);
 
                     List<BinanceOrderBookEntry> list_bid = Message.Data.Bids.ToList();
-                    decimal sum_bid = 0m;
-                    decimal price_bid = 0m;
-                    sum_bid = list_bid.Sum(it => it.Quantity);
-                    price_bid = list_bid[list_bid.Count - 1].Price;
+                    decimal price_bid = list_bid[0].Price;
+                    decimal sum_bid = list_bid.Sum(it => it.Quantity);
 
                     Dispatcher.Invoke(new Action(() =>
                     {
-                        if (price_ask != 0m) symbol.PriceAsk = price_ask;
-                        if (sum_ask != 0m) symbol.Ask = sum_ask;
-                        if (price_bid != 0m) symbol.PriceBid = price_bid;
-                        if (sum_bid != 0m) symbol.Bid = sum_bid;
+                        //if (price_ask != 0m) symbol.PriceAsk = price_ask;
+                        //if (sum_ask != 0m) symbol.Ask = sum_ask;
+                        //if (price_bid != 0m) symbol.PriceBid = price_bid;
+                        //if (sum_bid != 0m) symbol.Bid = sum_bid;
+                        symbol.PriceAsk = price_ask;
+                        symbol.PriceBid = price_bid;
+                        symbol.Ask = sum_ask;
+                        symbol.Bid = sum_bid;
                     }));
                 }));
             }
@@ -95,7 +100,6 @@ namespace BinanceAutoScalp.ViewModel
             {
                 
             }
-
         }
     }
 }
