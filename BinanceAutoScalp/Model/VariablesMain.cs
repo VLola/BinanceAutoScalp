@@ -55,5 +55,15 @@ namespace BinanceAutoScalp.Model
                 OnPropertyChanged("AllNegativeTrade");
             }
         }
+        private int _CountSymbols { get; set; } = 0;
+        public int CountSymbols
+        {
+            get { return _CountSymbols; }
+            set
+            {
+                _CountSymbols = value;
+                OnPropertyChanged("CountSymbols");
+            }
+        }
     }
 }

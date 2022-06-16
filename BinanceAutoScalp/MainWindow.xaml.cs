@@ -78,31 +78,40 @@ namespace BinanceAutoScalp
         private void Button_ClearAllTradeHistory(object sender, RoutedEventArgs e)
         {
             foreach (SymbolControl it in Symbols.Children)
-            { 
-                it.symbol.Ask = 0m;
-                it.symbol.Bid = 0m;
-                it.symbol.PriceAsk = 0m;
-                it.symbol.PriceBid = 0m;
-                it.symbol.CountAsk = 0;
-                it.symbol.CountBid = 0;
-                it.symbol.BidStart = false;
-                it.symbol.AskStart = false;
-                it.symbol.ListTrade = new List<Trade>();
+            {
+                if (!it.symbol.Start)
+                {
+                    it.symbol.Ask = 0m;
+                    it.symbol.Bid = 0m;
+                    it.symbol.PriceAsk = 0m;
+                    it.symbol.PriceBid = 0m;
+                    it.symbol.CountAsk = 0;
+                    it.symbol.CountBid = 0;
+                    it.symbol.Profit = 0m;
+                    it.symbol.BidStart = false;
+                    it.symbol.AskStart = false;
+                    it.symbol.ListTrade = new List<Trade>();
+                }
             }
         }
         private void Button_PositiveProfit(object sender, RoutedEventArgs e)
         {
             foreach (SymbolControl it in Symbols.Children)
             {
-                
+                if (it.symbol.Start && !it.symbol.isPositiveProfit)
+                {
+                    it.symbol.Start = false;
+                }
             }
         }
         private void Button_AllTradeHistory(object sender, RoutedEventArgs e)
         {
             int all_positive_trade = 0;
             int all_negative_trade = 0;
+            int count_symbols = 0;
             foreach (SymbolControl it in Symbols.Children)
             {
+                if (it.symbol.Start) count_symbols++;
                 foreach (var iterator in it.symbol.ListTrade)
                 {
                     if (iterator.isPositive) all_positive_trade++;
@@ -111,6 +120,7 @@ namespace BinanceAutoScalp
             }
             variables.AllPositiveTrade = all_positive_trade;
             variables.AllNegativeTrade = all_negative_trade;
+            variables.CountSymbols = count_symbols;
         }
         private void DetailSymbol_Click(object sender, RoutedEventArgs e)
         {
@@ -194,13 +204,13 @@ namespace BinanceAutoScalp
             {
                 foreach(SymbolControl it in Symbols.Children)
                 {
-                    it.CheckSymbol.IsChecked = true;
+                    if (!it.symbol.Start) it.symbol.Start = true;
                 }
             }
             else {
                 foreach (SymbolControl it in Symbols.Children)
                 {
-                    it.CheckSymbol.IsChecked = false;
+                    if (it.symbol.Start) it.symbol.Start = false;
                 }
             }
         }

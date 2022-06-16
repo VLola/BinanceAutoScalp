@@ -42,6 +42,8 @@ namespace BinanceAutoScalp.Model
                 OnPropertyChanged("Select");
             }
         }
+        private decimal bid_trade_ask;
+        private decimal bid_trade_bid;
         private decimal mul_start_bid;
         private decimal price_open_bid;
         private decimal price_close_bid;
@@ -55,11 +57,15 @@ namespace BinanceAutoScalp.Model
                     BidStart = true;
                     price_open_bid = _PriceBid;
                     mul_start_bid = MulStart;
+                    bid_trade_ask = _Ask;
+                    bid_trade_bid = value;
                 }
                 _Bid = value;
                 OnPropertyChanged("Bid");
-            } 
+            }
         }
+        private decimal ask_trade_ask;
+        private decimal ask_trade_bid;
         private decimal mul_start_ask;
         private decimal price_open_ask;
         private decimal price_close_ask;
@@ -73,6 +79,8 @@ namespace BinanceAutoScalp.Model
                     AskStart = true;
                     price_open_ask = _PriceAsk;
                     mul_start_ask = MulStart;
+                    ask_trade_ask = value;
+                    ask_trade_bid = _Bid;
                 }
                 _Ask = value;
                 OnPropertyChanged("Ask");
@@ -232,13 +240,13 @@ namespace BinanceAutoScalp.Model
         }
         public void AddAsk()
         {
-            _ListTrade.Add(new Trade(price_open_ask, price_close_ask, "Long", UpdateTimeAsk, mul_start_ask));
+            _ListTrade.Add(new Trade(price_open_ask, price_close_ask, "Long", UpdateTimeAsk, mul_start_ask, ask_trade_ask, ask_trade_bid));
             OnPropertyChanged("ListTrade"); 
             SetProfit();
         }
         public void AddBid()
         {
-            _ListTrade.Add(new Trade(price_open_bid, price_close_bid, "Short", UpdateTimeBid, mul_start_bid));
+            _ListTrade.Add(new Trade(price_open_bid, price_close_bid, "Short", UpdateTimeBid, mul_start_bid, bid_trade_ask, bid_trade_bid));
             OnPropertyChanged("ListTrade");
             SetProfit();
         }
@@ -295,7 +303,7 @@ namespace BinanceAutoScalp.Model
                 else isPositiveProfit = true;
             }
         }
-        private bool _isPositiveProfit { get; set; }
+        private bool _isPositiveProfit { get; set; } = true;
         public bool isPositiveProfit
         {
             get { return _isPositiveProfit; }
@@ -322,10 +330,12 @@ namespace BinanceAutoScalp.Model
         public string Position { get; set; }
         public bool isLong { get; set; }
         public decimal Profit { get; set; }
+        public decimal Ask { get; set; }
+        public decimal Bid { get; set; }
         public bool isPositive { get; set; }
         public DateTime UpdateTime { get; set; }
         public decimal MulStart { get; set; }
-        public Trade(decimal priceOpen, decimal priceClose, string position, DateTime updateTime, decimal mulStart)
+        public Trade(decimal priceOpen, decimal priceClose, string position, DateTime updateTime, decimal mulStart, decimal ask,decimal bid)
         {
             try {
                 PriceOpen = priceOpen;
@@ -333,6 +343,8 @@ namespace BinanceAutoScalp.Model
                 Position = position;
                 UpdateTime = updateTime; 
                 MulStart = mulStart;
+                Ask = ask;
+                Bid = bid;
                 if (position == "Long")
                 {
                     isLong = true;

@@ -18,7 +18,7 @@
             <Setter Property="Margin" Value="10 0"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Path=symbol.isPositiveProfit}" Value="True">
-                    <Setter Property="Background" Value="Green"/>
+                    <Setter Property="Foreground" Value="Green"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -97,10 +97,10 @@
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
             <Button Grid.Column="0" Content="{Binding Path=symbol.SymbolName}" x:Name="DetailSymbol" Style="{DynamicResource styleButton}"/>
-            <TextBlock Grid.Column="1" Text="{Binding Path=symbol.Profit}" Style="{DynamicResource styleTextBlock}"/>
+            <TextBlock Grid.Column="1" Text="{Binding Path=symbol.Profit}" Style="{DynamicResource styleTextBlockProfit}"/>
         </Grid>
         <Grid Grid.Column="1" Style="{DynamicResource styleGrid}">
-            <CheckBox x:Name="CheckSymbol" IsChecked="{Binding Path=symbol.Start}" Style="{DynamicResource styleCheckBox}"/>
+            <CheckBox IsChecked="{Binding Path=symbol.Start}" Style="{DynamicResource styleCheckBox}"/>
         </Grid>
         <Grid Grid.Column="2" Style="{DynamicResource styleGrid}">
             <TextBlock Text="{Binding Path=symbol.Bid}" Foreground="Red" Style="{DynamicResource styleTextBlock}"/>
