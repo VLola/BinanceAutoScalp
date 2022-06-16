@@ -12,6 +12,16 @@
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Margin" Value="10 0"/>
         </Style>
+        <Style x:Key="styleTextBlockProfit" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="Red"/>
+            <Setter Property="Margin" Value="10 0"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Path=symbol.isPositiveProfit}" Value="True">
+                    <Setter Property="Background" Value="Green"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
         <Style x:Key="styleButton" TargetType="Button">
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Background" Value="Black"/>
@@ -70,7 +80,7 @@
     </UserControl.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="120"/>
+            <ColumnDefinition Width="200"/>
             <ColumnDefinition Width="50"/>
             <ColumnDefinition Width="100"/>
             <ColumnDefinition Width="100"/>
@@ -79,10 +89,15 @@
             <ColumnDefinition Width="80"/>
             <ColumnDefinition Width="80"/>
             <ColumnDefinition Width="80"/>
+            <ColumnDefinition Width="100"/>
         </Grid.ColumnDefinitions>
         <Grid Grid.Column="0" Style="{DynamicResource styleGrid}">
-            <Button Content="{Binding Path=symbol.SymbolName}" x:Name="DetailSymbol" Style="{DynamicResource styleButton}"/>
-            <!--<TextBlock Text="{Binding Path=symbol.SymbolName}" Style="{DynamicResource styleTextBlock}"/>-->
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" Content="{Binding Path=symbol.SymbolName}" x:Name="DetailSymbol" Style="{DynamicResource styleButton}"/>
+            <TextBlock Grid.Column="1" Text="{Binding Path=symbol.Profit}" Style="{DynamicResource styleTextBlock}"/>
         </Grid>
         <Grid Grid.Column="1" Style="{DynamicResource styleGrid}">
             <CheckBox x:Name="CheckSymbol" IsChecked="{Binding Path=symbol.Start}" Style="{DynamicResource styleCheckBox}"/>
@@ -107,6 +122,9 @@
         </Grid>
         <Grid Grid.Column="8" Style="{DynamicResource styleGrid}">
             <TextBox Text="{Binding Path=symbol.SL}" Style="{DynamicResource styleTextBox}"/>
+        </Grid>
+        <Grid Grid.Column="9" Style="{DynamicResource styleGrid}">
+            <TextBox Text="{Binding Path=symbol.CheckTimeUpdate}"  Style="{DynamicResource styleTextBox}"/>
         </Grid>
     </Grid>
 </UserControl>

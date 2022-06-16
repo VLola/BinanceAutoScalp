@@ -27,7 +27,7 @@
             <Setter Property="Foreground" Value="Red"/>
             <Setter Property="Margin" Value="10 0"/>
             <Style.Triggers>
-                <DataTrigger Binding="{Binding Path=variables.isPlusProfit}" Value="True">
+                <DataTrigger Binding="{Binding Path=variables.isPositive}" Value="True">
                     <Setter Property="Foreground" Value="Green"/>
                 </DataTrigger>
             </Style.Triggers>
@@ -48,11 +48,13 @@
             <ColumnDefinition Width="100"/>
             <ColumnDefinition Width="100"/>
             <ColumnDefinition Width="100"/>
+            <ColumnDefinition Width="100"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
         <TextBlock Grid.Column="0" Text="{Binding Path=variables.PriceOpen}" Style="{DynamicResource styleTextBlock}"/>
         <TextBlock Grid.Column="1" Text="{Binding Path=variables.PriceClose}" Style="{DynamicResource styleTextBlock}"/>
         <TextBlock Grid.Column="2" Text="{Binding Path=variables.Position}" Style="{DynamicResource styleTextBlockPosition}"/>
         <TextBlock Grid.Column="3" Text="{Binding Path=variables.Profit}" Style="{DynamicResource styleTextBlockProfit}"/>
+        <TextBlock Grid.Column="4" Text="{Binding Path=variables.MulStart}" Style="{DynamicResource styleTextBlockProfit}"/>
     </Grid>
 </UserControl>

@@ -35,6 +35,7 @@ namespace BinanceAutoScalp
     public partial class MainWindow : Window
     {
         public VariablesMain variables { get; set; } = new VariablesMain();
+        public int CHECK_TIME_UPDATE { get; set; } = 5;
         public decimal MUL_START { get; set; } = 5m;
         public decimal TP { get; set; } = 0.001m;
         public decimal SL { get; set; } = 0.001m;
@@ -74,6 +75,43 @@ namespace BinanceAutoScalp
             this.DataContext = this;
         }
 
+        private void Button_ClearAllTradeHistory(object sender, RoutedEventArgs e)
+        {
+            foreach (SymbolControl it in Symbols.Children)
+            { 
+                it.symbol.Ask = 0m;
+                it.symbol.Bid = 0m;
+                it.symbol.PriceAsk = 0m;
+                it.symbol.PriceBid = 0m;
+                it.symbol.CountAsk = 0;
+                it.symbol.CountBid = 0;
+                it.symbol.BidStart = false;
+                it.symbol.AskStart = false;
+                it.symbol.ListTrade = new List<Trade>();
+            }
+        }
+        private void Button_PositiveProfit(object sender, RoutedEventArgs e)
+        {
+            foreach (SymbolControl it in Symbols.Children)
+            {
+                
+            }
+        }
+        private void Button_AllTradeHistory(object sender, RoutedEventArgs e)
+        {
+            int all_positive_trade = 0;
+            int all_negative_trade = 0;
+            foreach (SymbolControl it in Symbols.Children)
+            {
+                foreach (var iterator in it.symbol.ListTrade)
+                {
+                    if (iterator.isPositive) all_positive_trade++;
+                    else all_negative_trade++;
+                }
+            }
+            variables.AllPositiveTrade = all_positive_trade;
+            variables.AllNegativeTrade = all_negative_trade;
+        }
         private void DetailSymbol_Click(object sender, RoutedEventArgs e)
         {
             if(Detail.Children.Count > 0)
@@ -91,27 +129,13 @@ namespace BinanceAutoScalp
             int count = 0;
             int positive_trade = 0;
             int negative_trade = 0;
-            if (symbol_control.symbol.ListAsk.Count > 0)
+            if (symbol_control.symbol.ListTrade.Count > 0)
             {
-                List<Trade> list = symbol_control.symbol.ListAsk;
+                List<Trade> list = symbol_control.symbol.ListTrade;
                 foreach (var it in list)
                 {
                     HistoryTradeControl control = new HistoryTradeControl(it);
-                    if (control.variables.isPlusProfit) positive_trade++;
-                    else negative_trade++;
-                    Detail.RowDefinitions.Add(new RowDefinition());
-                    Grid.SetRow(control, count);
-                    Detail.Children.Add(control);
-                    count++;
-                }
-            }
-            if (symbol_control.symbol.ListBid.Count > 0)
-            {
-                List<Trade> list = symbol_control.symbol.ListBid;
-                foreach (var it in list)
-                {
-                    HistoryTradeControl control = new HistoryTradeControl(it);
-                    if (control.variables.isPlusProfit) positive_trade++;
+                    if (control.variables.isPositive) positive_trade++;
                     else negative_trade++;
                     Detail.RowDefinitions.Add(new RowDefinition());
                     Grid.SetRow(control, count);
@@ -122,9 +146,19 @@ namespace BinanceAutoScalp
             variables.PositiveTrade = positive_trade;
             variables.NegativeTrade = negative_trade;
         }
+        private void TimeSpan_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (CHECK_TIME_UPDATE > 0)
+            {
+                foreach (SymbolControl it in Symbols.Children)
+                {
+                    it.symbol.CheckTimeUpdate = CHECK_TIME_UPDATE;
+                }
+            }
+        }
         private void MulStart_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if(MUL_START > 0m)
+            if (MUL_START > 0m)
             {
                 foreach (SymbolControl it in Symbols.Children)
                 {

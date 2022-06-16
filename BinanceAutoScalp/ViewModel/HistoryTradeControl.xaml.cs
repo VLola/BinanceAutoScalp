@@ -21,14 +21,12 @@ namespace BinanceAutoScalp.ViewModel
     /// </summary>
     public partial class HistoryTradeControl : UserControl
     {
-        public VariablesTrade variables { get; set; } = new VariablesTrade();
+        public Trade variables { get; set; }
         public HistoryTradeControl(Trade trade)
         {
             InitializeComponent();
+            variables = trade;
             this.DataContext = this;
-            variables.PriceOpen = trade.PriceOpen;
-            variables.PriceClose = trade.PriceClose;
-            variables.Position = trade.Position;
         }
     }
 }

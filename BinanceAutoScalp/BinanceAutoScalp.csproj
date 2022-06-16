@@ -123,7 +123,6 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Model\VariablesMain.cs" />
-    <Compile Include="Model\VariablesTrade.cs" />
     <Compile Include="ViewModel\HistoryTradeControl.xaml.cs">
       <DependentUpon>HistoryTradeControl.xaml</DependentUpon>
     </Compile>

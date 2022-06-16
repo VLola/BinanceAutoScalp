@@ -35,5 +35,25 @@ namespace BinanceAutoScalp.Model
                 OnPropertyChanged("NegativeTrade");
             }
         }
+        private int _AllPositiveTrade { get; set; } = 0;
+        public int AllPositiveTrade
+        {
+            get { return _AllPositiveTrade; }
+            set
+            {
+                _AllPositiveTrade = value;
+                OnPropertyChanged("AllPositiveTrade");
+            }
+        }
+        private int _AllNegativeTrade { get; set; } = 0;
+        public int AllNegativeTrade
+        {
+            get { return _AllNegativeTrade; }
+            set
+            {
+                _AllNegativeTrade = value;
+                OnPropertyChanged("AllNegativeTrade");
+            }
+        }
     }
 }

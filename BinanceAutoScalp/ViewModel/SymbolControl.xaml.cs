@@ -15,6 +15,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace BinanceAutoScalp.ViewModel
 {
@@ -23,6 +24,7 @@ namespace BinanceAutoScalp.ViewModel
     /// </summary>
     public partial class SymbolControl : UserControl
     {
+        public DispatcherTimer timer = new DispatcherTimer();
         public Symbol symbol { get; set; } = new Symbol();
         public Socket socket { get; set; } = new Socket("Si5U4TSmpX4ByMDQEiWu9aGnHaX7o66Hw1erDl5tsfOKw1sjXTpUrP0JhonXrGJR", "ddKGxVke1y7Y0WRMBeuMeKAfqNdU7aBC8eOeHXHMY6CqYGzl0MPfuM60UkX7Dnoa");
         public SymbolControl(string symbol_name)
@@ -31,6 +33,19 @@ namespace BinanceAutoScalp.ViewModel
             this.DataContext = this;
             symbol.SymbolName = symbol_name;
             symbol.PropertyChanged += Symbol_PropertyChanged;
+            timer.Interval = TimeSpan.FromMinutes(1);
+            timer.Tick += Timer_Tick;
+        }
+
+        private void Timer_Tick(object sender, EventArgs e)
+        {
+            if (symbol.Start)
+            {
+                if (symbol.ListTrade.Count == 0 && symbol.MulStart >= 3m || symbol.ListTrade.Count > 0 && symbol.MulStart >= 3m && symbol.UpdateTime - symbol.ListTrade[symbol.ListTrade.Count - 1].UpdateTime > TimeSpan.FromMinutes(symbol.CheckTimeUpdate))
+                {
+                    symbol.MulStart = symbol.MulStart - 1m;
+                }
+            }
         }
 
         private void Symbol_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -40,10 +55,19 @@ namespace BinanceAutoScalp.ViewModel
                 if (symbol.Start)
                 {
                     SubscribeOrderBook();
+                    timer.Start();
                 }
                 else
                 {
+                    timer.Stop();
                     StopAsync();
+                }
+            }
+            if (e.PropertyName == "ListTrade")
+            {
+                if (symbol.ListTrade.Count > 2 && !symbol.ListTrade[symbol.ListTrade.Count - 1].isPositive && !symbol.ListTrade[symbol.ListTrade.Count - 2].isPositive)
+                {
+                    symbol.MulStart = symbol.MulStart + 1m;
                 }
             }
         }
@@ -58,16 +82,15 @@ namespace BinanceAutoScalp.ViewModel
         {
             var result = socket.socketClient.UnsubscribeAllAsync();
             result.Wait(100);
-            symbol.Ask = 0m;
-            symbol.Bid = 0m;
-            symbol.PriceAsk = 0m;
-            symbol.PriceBid = 0m;
-            symbol.CountAsk = 0;
-            symbol.CountBid = 0;
-            symbol.BidStart = false;
-            symbol.AskStart = false;
-            symbol.ListAsk = new List<Trade>();
-            symbol.ListBid = new List<Trade>();
+            //symbol.Ask = 0m;
+            //symbol.Bid = 0m;
+            //symbol.PriceAsk = 0m;
+            //symbol.PriceBid = 0m;
+            //symbol.CountAsk = 0;
+            //symbol.CountBid = 0;
+            //symbol.BidStart = false;
+            //symbol.AskStart = false;
+            //symbol.ListTrade = new List<Trade>();
         }
         async public void SubscribeOrderBook()
         {
@@ -93,6 +116,7 @@ namespace BinanceAutoScalp.ViewModel
                         symbol.PriceBid = price_bid;
                         symbol.Ask = sum_ask;
                         symbol.Bid = sum_bid;
+                        symbol.UpdateTime = Message.Data.TransactionTime;
                     }));
                 }));
             }

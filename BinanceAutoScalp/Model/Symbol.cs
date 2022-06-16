@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
@@ -41,6 +42,7 @@ namespace BinanceAutoScalp.Model
                 OnPropertyChanged("Select");
             }
         }
+        private decimal mul_start_bid;
         private decimal price_open_bid;
         private decimal price_close_bid;
         private decimal _Bid { get; set; }
@@ -52,11 +54,13 @@ namespace BinanceAutoScalp.Model
                 {
                     BidStart = true;
                     price_open_bid = _PriceBid;
+                    mul_start_bid = MulStart;
                 }
                 _Bid = value;
                 OnPropertyChanged("Bid");
             } 
         }
+        private decimal mul_start_ask;
         private decimal price_open_ask;
         private decimal price_close_ask;
         private decimal _Ask { get; set; }
@@ -68,6 +72,7 @@ namespace BinanceAutoScalp.Model
                 {
                     AskStart = true;
                     price_open_ask = _PriceAsk;
+                    mul_start_ask = MulStart;
                 }
                 _Ask = value;
                 OnPropertyChanged("Ask");
@@ -85,6 +90,7 @@ namespace BinanceAutoScalp.Model
                     BidStart = false;
                     price_close_bid = value;
                     CountBid = _CountBid + 1;
+                    UpdateTimeBid = UpdateTime;
                     AddBid();
                 }
             }
@@ -102,6 +108,7 @@ namespace BinanceAutoScalp.Model
                     AskStart = false;
                     price_close_ask = value;
                     CountAsk = _CountAsk + 1;
+                    UpdateTimeAsk = UpdateTime;
                     AddAsk();
                 }
             }
@@ -212,36 +219,100 @@ namespace BinanceAutoScalp.Model
                 OnPropertyChanged("CountAskPlus");
             }
         }
-        private List<Trade> _ListAsk { get; set; } = new List<Trade>();
-        public List<Trade> ListAsk
+        private List<Trade> _ListTrade { get; set; } = new List<Trade>();
+        public List<Trade> ListTrade
         {
-            get { return _ListAsk; }
+            get { return _ListTrade; }
             set
             {
-                _ListAsk = value;
-                OnPropertyChanged("ListAsk");
+                _ListTrade = value;
+                OnPropertyChanged("ListTrade");
             }
 
         }
-        private List<Trade> _ListBid { get; set; } = new List<Trade>();
-        public List<Trade> ListBid
-        {
-            get { return _ListBid; }
-            set
-            {
-                _ListBid = value;
-                OnPropertyChanged("ListBid");
-            }
-        }
         public void AddAsk()
         {
-            _ListAsk.Add(new Trade(price_open_ask, price_close_ask, "Long"));
-            OnPropertyChanged("ListAsk");
+            _ListTrade.Add(new Trade(price_open_ask, price_close_ask, "Long", UpdateTimeAsk, mul_start_ask));
+            OnPropertyChanged("ListTrade"); 
+            SetProfit();
         }
         public void AddBid()
         {
-            _ListBid.Add(new Trade(price_open_bid, price_close_bid, "Short"));
-            OnPropertyChanged("ListBid");
+            _ListTrade.Add(new Trade(price_open_bid, price_close_bid, "Short", UpdateTimeBid, mul_start_bid));
+            OnPropertyChanged("ListTrade");
+            SetProfit();
+        }
+
+        private DateTime _UpdateTimeAsk { get; set; }
+        public DateTime UpdateTimeAsk
+        {
+            get { return _UpdateTimeAsk; }
+            set
+            {
+                _UpdateTimeAsk = value;
+                OnPropertyChanged("UpdateTimeAsk");
+            }
+        }
+        private DateTime _UpdateTimeBid { get; set; }
+        public DateTime UpdateTimeBid
+        {
+            get { return _UpdateTimeBid; }
+            set
+            {
+                _UpdateTimeBid = value;
+                OnPropertyChanged("UpdateTimeBid");
+            }
+        }
+        private DateTime _UpdateTime { get; set; }
+        public DateTime UpdateTime
+        {
+            get { return _UpdateTime; }
+            set
+            {
+                _UpdateTime = value;
+                OnPropertyChanged("UpdateTime");
+            }
+        }
+        private int _CheckTimeUpdate { get; set; } = 5;
+        public int CheckTimeUpdate
+        {
+            get { return _CheckTimeUpdate; }
+            set
+            {
+                _CheckTimeUpdate = value;
+                OnPropertyChanged("CheckTimeUpdate");
+            }
+        }
+        private decimal _Profit { get; set; }
+        public decimal Profit
+        {
+            get { return _Profit; }
+            set
+            {
+                _Profit = value;
+                OnPropertyChanged("Profit");
+                if (value < 0m) isPositiveProfit = false;
+                else isPositiveProfit = true;
+            }
+        }
+        private bool _isPositiveProfit { get; set; }
+        public bool isPositiveProfit
+        {
+            get { return _isPositiveProfit; }
+            set
+            {
+                _isPositiveProfit = value;
+                OnPropertyChanged("isPositiveProfit");
+            }
+        }
+        private void SetProfit()
+        {
+            decimal profit = 0m;
+            foreach (var it in ListTrade)
+            {
+                profit += it.Profit;
+            }
+            Profit = profit;
         }
     }
     public class Trade
@@ -249,11 +320,33 @@ namespace BinanceAutoScalp.Model
         public decimal PriceOpen { get; set; }
         public decimal PriceClose { get; set; }
         public string Position { get; set; }
-        public Trade(decimal PriceOpen, decimal PriceClose, string Position)
+        public bool isLong { get; set; }
+        public decimal Profit { get; set; }
+        public bool isPositive { get; set; }
+        public DateTime UpdateTime { get; set; }
+        public decimal MulStart { get; set; }
+        public Trade(decimal priceOpen, decimal priceClose, string position, DateTime updateTime, decimal mulStart)
         {
-            this.PriceOpen = PriceOpen;
-            this.PriceClose = PriceClose;
-            this.Position = Position;
+            try {
+                PriceOpen = priceOpen;
+                PriceClose = priceClose;
+                Position = position;
+                UpdateTime = updateTime; 
+                MulStart = mulStart;
+                if (position == "Long")
+                {
+                    isLong = true;
+                    Profit = ((priceClose - priceOpen) / priceOpen);
+                }
+                else
+                {
+                    isLong = false;
+                    Profit = ((priceOpen - priceClose) / priceClose);
+                }
+                if (Profit < 0m) isPositive = false;
+                else isPositive = true;
+            } 
+            catch { }
         }
     }
 }

@@ -88,6 +88,13 @@
             <Setter Property="Background" Value="Gray" />
             <Setter Property="Foreground" Value="White" />
         </Style>
+        <Style x:Key="styleButtonBlack" TargetType="Button">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Margin" Value="10 0" />
+            <Setter Property="Background" Value="Black" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
         <Style x:Key="styleComboBox" TargetType="ComboBox">
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="HorizontalAlignment" Value="Center" />
@@ -254,7 +261,7 @@
             </Grid>
             <Grid Grid.Column="2" Grid.Row="0" Grid.RowSpan="2" Style="{DynamicResource styleGridBlack}">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="200"/>
                     <ColumnDefinition Width="50"/>
                     <ColumnDefinition Width="100"/>
                     <ColumnDefinition Width="100"/>
@@ -263,6 +270,7 @@
                     <ColumnDefinition Width="80"/>
                     <ColumnDefinition Width="80"/>
                     <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="100"/>
                     <ColumnDefinition Width="20"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
@@ -271,15 +279,23 @@
                     <RowDefinition/>
                     <RowDefinition/>
                 </Grid.RowDefinitions>
-                <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="9">
+                <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="10">
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="auto"/>
                         <ColumnDefinition/>
                         <ColumnDefinition/>
                         <ColumnDefinition/>
                         <ColumnDefinition/>
                     </Grid.ColumnDefinitions>
                     <Grid Grid.Column="0" Style="{DynamicResource styleGrid}">
-                        <CheckBox Content="Select all" Click="SellectAll_Click" Margin="20" Style="{DynamicResource styleCheckBox}"/>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox Grid.Column="0" Content="Start all" Click="SellectAll_Click" Margin="20" Style="{DynamicResource styleCheckBox}"/>
+                        <Button Grid.Column="1" Content="Clear all" Click="Button_ClearAllTradeHistory" Style="{DynamicResource styleButtonBlack}"/>
+                        <Button Grid.Column="2" Content="Positive profit" Click="Button_PositiveProfit" Style="{DynamicResource styleButtonBlack}"/>
                     </Grid>
                     <Grid Grid.Column="1" Style="{DynamicResource styleGrid}">
                         <Grid.ColumnDefinitions>
@@ -304,6 +320,14 @@
                         </Grid.ColumnDefinitions>
                         <Label Grid.Column="0" Content="SL:" Style="{DynamicResource styleLabel}"/>
                         <TextBox Grid.Column="1" Text="{Binding Path=SL, UpdateSourceTrigger=PropertyChanged}" TextChanged="SL_TextChanged" Style="{DynamicResource styleTextBox}"/>
+                    </Grid>
+                    <Grid Grid.Column="4" Style="{DynamicResource styleGrid}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0" Content="Time(Minute):" Style="{DynamicResource styleLabel}"/>
+                        <TextBox Grid.Column="1" Text="{Binding Path=CHECK_TIME_UPDATE, UpdateSourceTrigger=PropertyChanged}" TextChanged="TimeSpan_TextChanged" Style="{DynamicResource styleTextBox}"/>
                     </Grid>
                 </Grid>
 
@@ -335,13 +359,16 @@
                     <Label Content="SL" Margin="1" Style="{DynamicResource styleLabel}"/>
                 </Grid>
                 <Grid  Grid.Column="9" Grid.Row="1" Style="{DynamicResource styleGrid}">
+                    <Label Content="Time(Minute)" Margin="1" Style="{DynamicResource styleLabel}"/>
+                </Grid>
+                <Grid  Grid.Column="10" Grid.Row="1" Style="{DynamicResource styleGrid}">
                     <!--<Label Content="Detail" Margin="1" Style="{DynamicResource styleLabel}"/>-->
                 </Grid>
 
-                <ScrollViewer Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="10">
+                <ScrollViewer Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="11">
                     <Grid x:Name="Symbols"/>
                 </ScrollViewer>
-                <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="10">
+                <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="11">
 
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -349,6 +376,8 @@
                     </Grid.RowDefinitions>
                     <Grid Grid.Row="0">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="100"/>
                             <ColumnDefinition Width="100"/>
                             <ColumnDefinition Width="100"/>
                             <ColumnDefinition Width="100"/>
@@ -370,6 +399,16 @@
                                 <Label Content="Profit" Style="{DynamicResource styleLabel}"/>
                                 <TextBlock Text="{Binding Path=variables.PositiveTrade}" Style="{DynamicResource styleTextBlock}" Foreground="Green"/>
                                 <TextBlock Text="{Binding Path=variables.NegativeTrade}" Style="{DynamicResource styleTextBlock}" Foreground="Red"/>
+                            </DockPanel>
+                        </Grid>
+                        <Grid  Grid.Column="4" Style="{DynamicResource styleGrid}">
+                            <Label Content="MulStart" Style="{DynamicResource styleLabel}"/>
+                        </Grid>
+                        <Grid  Grid.Column="5" Style="{DynamicResource styleGrid}">
+                            <DockPanel>
+                                <Button Content="Click" Click="Button_AllTradeHistory" Style="{DynamicResource styleButton}"/>
+                                <TextBlock Text="{Binding Path=variables.AllPositiveTrade}" Style="{DynamicResource styleTextBlock}" Foreground="Green"/>
+                                <TextBlock Text="{Binding Path=variables.AllNegativeTrade}" Style="{DynamicResource styleTextBlock}" Foreground="Red"/>
                             </DockPanel>
                         </Grid>
                     </Grid>
